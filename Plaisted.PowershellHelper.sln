@@ -11,9 +11,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{1BA54848-C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plaisted.PowershellHelper.Tests", "test\Plaisted.PowershellHelper.Tests\Plaisted.PowershellHelper.Tests.csproj", "{DA8BAC47-8189-4159-A872-25105EEBCB15}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plaisted.PowershellHelper.IntegrationTests", "Plaisted.PowershellHelper.IntegrationTests\Plaisted.PowershellHelper.IntegrationTests.csproj", "{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plaisted.PowershellHelper.IntegrationTests", "test\Plaisted.PowershellHelper.IntegrationTests\Plaisted.PowershellHelper.IntegrationTests.csproj", "{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleTest", "ConsoleTest\ConsoleTest.csproj", "{052CD33D-B750-4880-8411-257744FF5D54}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleTest", "src\ConsoleTest\ConsoleTest.csproj", "{052CD33D-B750-4880-8411-257744FF5D54}"
 EndProject
 Global
 	GlobalSection(Performance) = preSolution

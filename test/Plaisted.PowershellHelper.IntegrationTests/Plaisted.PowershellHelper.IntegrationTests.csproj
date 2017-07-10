@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Plaisted.PowershellHelper\Plaisted.PowershellHelper.csproj" />
+    <ProjectReference Include="..\..\src\Plaisted.PowershellHelper\Plaisted.PowershellHelper.csproj" />
   </ItemGroup>
 
   <ItemGroup>

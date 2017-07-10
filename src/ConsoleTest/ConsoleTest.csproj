@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\src\Plaisted.PowershellHelper\Plaisted.PowershellHelper.csproj" />
+    <ProjectReference Include="..\Plaisted.PowershellHelper\Plaisted.PowershellHelper.csproj" />
   </ItemGroup>
 
 </Project>
