@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Plaisted.PowershellHelper
 {
-    public class DisposableContainer : IDisposable, IDisposableContainer
+    internal class DisposableContainer : IDisposable, IDisposableContainer
     {
         private List<IDisposable> disposables;
 

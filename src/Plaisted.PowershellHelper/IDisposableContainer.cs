@@ -2,7 +2,7 @@
 
 namespace Plaisted.PowershellHelper
 {
-    public interface IDisposableContainer
+    internal interface IDisposableContainer
     {
         void Add(IDisposable disposable);
         void Dispose();

@@ -33,10 +33,12 @@ namespace Plaisted.PowershellHelper.IntegrationTests
                     process.StartInfo = si;
                     process.Start();
                     process.WaitForExit();
+                    Assert.True(process.ExitCode == 0);
                 }
 
                 //verify deletion
                 Assert.False(File.Exists(testFile));
+                
             }
         }
 
@@ -68,10 +70,12 @@ namespace Plaisted.PowershellHelper.IntegrationTests
                     process.StartInfo = si;
                     process.Start();
                     process.WaitForExit();
+                    Assert.Equal(stopOnErrors, process.ExitCode != 0);
                 }
 
                 //verify deletion
                 Assert.Equal(stopOnErrors, File.Exists(testFile));
+                
             }
         }
 
@@ -107,10 +111,12 @@ namespace Plaisted.PowershellHelper.IntegrationTests
                     process.WaitForExit();
                     var output = process.StandardOutput.ReadToEnd();
                     var error = process.StandardError.ReadToEnd();
+                    Assert.Equal(stopOnErrors, process.ExitCode != 0);
                 }
 
                 //verify deletion
                 Assert.Equal(stopOnErrors, File.Exists(testFile));
+                
             }
         }
 
@@ -121,7 +127,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
             {
                 //setup mock jsonobject from test object
                 var jsonFile = workspace.AddFileWithContents("testObject.json", JsonConvert.SerializeObject(new {Property = "testValue" }));
-                var mockJson = new Mock<IJsonObject>();
+                var mockJson = new Mock<IJsonObjectBridge>();
                 mockJson.Setup(x => x.CreateTempFile()).Returns(jsonFile);
                 mockJson.Setup(x => x.Name).Returns("testObject");
 
@@ -152,6 +158,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
 
                     //verify results
                     Assert.Equal(true, output.Contains("True True"));
+                    
                 }
             }
         }

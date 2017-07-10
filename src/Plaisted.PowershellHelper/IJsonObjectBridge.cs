@@ -1,6 +1,6 @@
 ﻿namespace Plaisted.PowershellHelper
 {
-    public interface IJsonObject
+    internal interface IJsonObjectBridge
     {
         string Name { get; set; }
         object Object { get; set; }

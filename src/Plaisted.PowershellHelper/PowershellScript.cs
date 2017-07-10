@@ -5,12 +5,13 @@ using System.Text;
 
 namespace Plaisted.PowershellHelper
 {
-    public class PowershellScript : IDisposable, IPowershellScript
+    internal class PowershellScript : IDisposable, IPowershellScript
     {
         private List<string> declarations = new List<string>();
         private List<string> commands = new List<string>();
         private List<string> outputs = new List<string>();
         private string tempFile;
+        
 
         /// <summary>
         /// Sets if the powershell script should stop on errors or continue
@@ -32,7 +33,7 @@ namespace Plaisted.PowershellHelper
         {
             declarations.Add($"${objectName} = [IO.File]::ReadAllText(\"{tempJsonFile}\") | ConvertFrom-Json");
         }
-        public void SetObject(IJsonObject jsonObject)
+        public void SetObject(IJsonObjectBridge jsonObject)
         {
             SetObject(jsonObject.Name, jsonObject.CreateTempFile());
         }
@@ -61,7 +62,7 @@ namespace Plaisted.PowershellHelper
         }
         public void Dispose()
         {
-            File.Delete(tempFile);
+            if (!string.IsNullOrEmpty(tempFile)) File.Delete(tempFile);
         }
     }
 }

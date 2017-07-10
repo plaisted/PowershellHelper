@@ -10,10 +10,9 @@ namespace Plaisted.PowershellHelper.Tests
         {
             using (var script = new PowershellScript())
             {
-                using (var jsonObject = new JsonObject())
+                using (var jsonObject = new JsonObjectBridge("Test"))
                 {
                     jsonObject.Object = new { Test = "test" };
-                    jsonObject.Name = "Test";
                     script.SetObject(jsonObject);
                     script.AddCommand("Write-Host \"Test\"");
                     script.AddCommand("$test = \"Test\"");

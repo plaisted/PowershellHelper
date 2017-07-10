@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Microsoft.Win32.SafeHandles;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,64 +13,148 @@ namespace Plaisted.PowershellHelper
 {
     public class PowershellHelper
     {
-        private ILogger _logger;
-        private Process process;
-        private List<string> commands;
-        private List<KeyValuePair<string, object>> inputObjects;
-        private List<string> outputObjects;
-        private PowershellScript script;
+        private ILogger _logger = new OptionalLogger();
+        private List<string> commands = new List<string>();
+        private List<KeyValuePair<string, object>> inputObjects = new List<KeyValuePair<string, object>>();
+        private List<string> outputObjects = new List<string>();
+        private bool processCleanup = true;
+        private string workingDirectory;
+        /// <summary>
+        /// PowershellHelper runs powershell scripts in their own process allowing proper cleanup of spawned processes.
+        /// </summary>
+        public PowershellHelper()
+        {
+
+        }
 
         /// <summary>
-        /// 
+        /// PowershellHelper runs powershell scripts in their own process allowing proper cleanup of spawned processes.
         /// </summary>
-        /// <param name="logger"></param>
+        /// <param name="logger">ILoggerFactory to be used for creating an ILogger for PowershellHelper logging.</param>
         public PowershellHelper(ILoggerFactory logger)
         {
             _logger = logger.CreateLogger("Plaisted.PowershellHelper");
-            process = new Process();
-            process.OutputDataReceived += HandleOutputDataReceived;
-            process.ErrorDataReceived += HandleErrorDataReceived;
         }
-
-        public void AddCommands(IEnumerable<string> commands)
+        /// <summary>
+        /// PowershellHelper runs powershell scripts in their own process allowing proper cleanup of spawned processes.
+        /// </summary>
+        /// <param name="logger">ILogger to be used for PowershellHelper logging.</param>
+        public PowershellHelper(ILogger logger)
+        {
+            _logger = logger;
+        }
+        /// <summary>
+        /// Sets the <see cref="path"/> that the powershell script is executed in.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public PowershellHelper WithWorkingDirectory(string path)
+        {
+            workingDirectory = path;
+            return this;
+        }
+        /// <summary>
+        /// Adds commands to the Powershell script.
+        /// </summary>
+        /// <param name="commands">Commands to be executed sequentially in Powershell.</param>
+        /// <returns></returns>
+        public PowershellHelper AddCommands(IEnumerable<string> commands)
         {
             this.commands.AddRange(commands);
+            return this;
         }
-        public void AddCommand(string command)
+        /// <summary>
+        /// Adds a single command to the Powershellscript.
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns></returns>
+        public PowershellHelper AddCommand(string command)
         {
             commands.Add(command);
+            return this;
         }
-
-        public void AddInputObjects(IEnumerable<KeyValuePair<string, object>> inputObjects)
+        /// <summary>
+        /// Determines if all processes spawned by the Powershell script should be terminated once the script has exited.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public PowershellHelper WithProcessCleanup(bool value)
+        {
+            processCleanup = value;
+            return this;
+        }
+        /// <summary>
+        /// Adds objects to the Powershell environment prior to executing added commands.
+        /// </summary>
+        /// <param name="inputObjects">KVP of variable name and object.</param>
+        /// <returns></returns>
+        public PowershellHelper AddInputObjects(IEnumerable<KeyValuePair<string, object>> inputObjects)
         {
             this.inputObjects.AddRange(inputObjects);
+            return this;
         }
-
-        public void AddInputObject(KeyValuePair<string, object> inputObject)
+        /// <summary>
+        /// Adds object to the Powershell environment prior to executing added commands.
+        /// </summary>
+        /// <param name="inputObjects">KVP of variable name and object.</param>
+        /// <returns></returns>
+        public PowershellHelper AddInputObject(KeyValuePair<string, object> inputObject)
         {
             inputObjects.Add(inputObject);
+            return this;
         }
-
-        public void AddOutputObject(string outputObject)
+        /// <summary>
+        /// Adds object to the Powershell environment prior to executing added commands.
+        /// </summary>
+        /// <param name="name">Name to be used for the variable in powershell.</param>
+        /// <param name="inputObject">Object to the set.</param>
+        /// <returns></returns>
+        public PowershellHelper AddInputObject(string name, object inputObject)
+        {
+            inputObjects.Add(new KeyValuePair<string,object>(name, inputObject));
+            return this;
+        }
+        /// <summary>
+        /// Sets by powershell variable name which objects will be returned to the C# environment after script has finished running.
+        /// </summary>
+        /// <param name="outputObject"></param>
+        /// <returns></returns>
+        public PowershellHelper AddOutputObject(string outputObject)
         {
             outputObjects.Add(outputObject);
+            return this;
         }
-        public void AddOutputObject(IEnumerable<string> outputObjects)
+        /// <summary>
+        /// Sets by powershell variable name which objects will be returned to the C# environment after script has finished running.
+        /// </summary>
+        /// <param name="outputObject"></param>
+        /// <returns></returns>
+        public PowershellHelper AddOutputObjects(IEnumerable<string> outputObjects)
         {
             this.outputObjects.AddRange(outputObjects);
+            return this;
         }
-
-        public async Task<Dictionary<string, object>> Run(CancellationToken cancellationToken)
+        /// <summary>
+        /// Runs the powershell script.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <returns>Task of the dictionary containing JObjects of output objects.</returns>
+        public async Task<Dictionary<string, JObject>> Run(CancellationToken cancellationToken)
         {
-            return await Run(0, cancellationToken);
+            return await Run(cancellationToken, -1);
         }
-
-
-        public async Task<Dictionary<string, object>> Run(int millisecondsTimeout, CancellationToken cancellationToken)
+        /// <summary>
+        /// Runs the powershell script.
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <param name="millisecondsTimeout">Timeout length to wait for task to finish.</param>
+        /// <returns>Task of the dictionary containing JObjects of output objects.</returns>
+        public async Task<Dictionary<string, JObject>> Run(CancellationToken cancellationToken, int millisecondsTimeout)
         {
             using (var disposables = new DisposableContainer())
             {
-                script = new PowershellScript();
+                //main script
+                var script = new PowershellScript();
                 disposables.Add(script);
 
                 //add inputs
@@ -82,73 +167,36 @@ namespace Plaisted.PowershellHelper
                 var outputTempFiles = AddOutputsToScript(outputObjects, script);
 
                 //run
-                var completion = new TaskCompletionSource<int>();
-                var scriptPath = script.CreateTempFile();
-                process.StartInfo = GetDefaultStartInfo(scriptPath);
-                process.EnableRaisingEvents = true;
-                process.Exited += (s, e) => completion.SetResult(process.ExitCode);
-                process.Start();
-
-                if (millisecondsTimeout != 0)
+                var process = new PowershellProcess(script.CreateTempFile());
+                if (!string.IsNullOrEmpty(workingDirectory))
                 {
-                    WaitHandle.WaitAny(new WaitHandle[2] { ((IAsyncResult)completion.Task).AsyncWaitHandle, cancellationToken.WaitHandle }, millisecondsTimeout);
+                    process.WithWorkingDirectory(workingDirectory);
                 }
-                else
-                {
-                    WaitHandle.WaitAny(new WaitHandle[2] { ((IAsyncResult)completion.Task).AsyncWaitHandle, cancellationToken.WaitHandle });
-                }
+                int exitCode = await process.RunAsync(cancellationToken, millisecondsTimeout);
 
+
+                //kill spawned processes
+                if (processCleanup)
+                {
+                    var cleanupScript = new PowershellScript();
+                    disposables.Add(cleanupScript);
+                    cleanupScript.AddCommand($"Get-CimInstance Win32_Process -Filter ParentProcessId={process.ProcessId.ToString()} " + 
+                        "| % { Stop-Process -id $_.ProcessId -Force }");
+                    await new PowershellProcess(cleanupScript.CreateTempFile()).RunAsync(new CancellationToken());
+                }
 
                 //read output files
                 var outputDict = ReadOutputs(outputTempFiles, _logger);
 
                 return outputDict;
             }
-
-        }
-        public void AddOutputDataReceivedHandler(DataReceivedEventHandler handler)
-        {
-            process.OutputDataReceived += handler;
-        }
-        public void RemoveOutputDataReceivedHandler(DataReceivedEventHandler handler)
-        {
-            process.OutputDataReceived -= handler;
-        }
-        public void AddErrorDataReceivedHandler(DataReceivedEventHandler handler)
-        {
-            process.ErrorDataReceived += handler;
-        }
-        public void RemoveErrorDataReceivedHandler(DataReceivedEventHandler handler)
-        {
-            process.ErrorDataReceived -= handler;
-        }
-
-        private void HandleOutputDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            _logger.LogInformation("[{EventName}] {Data}", "StdOut", e.Data);
-        }
-        private void HandleErrorDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            _logger.LogError("[{EventName}] {Data}", "StdErr", e.Data);
-        }
-
-        private static ProcessStartInfo GetDefaultStartInfo(string scriptPath)
-        {
-            var si = new ProcessStartInfo();
-            si.UseShellExecute = false;
-            si.RedirectStandardOutput = true;
-            si.RedirectStandardError = true;
-            si.CreateNoWindow = true;
-            si.FileName = "powershell.exe";
-            si.Arguments = scriptPath;
-            return si;
         }
 
         private static void AddInputsToScript(List<KeyValuePair<string, object>> inputObjects, IPowershellScript script, IDisposableContainer disposables)
         {
             foreach (var inputObject in inputObjects)
             {
-                var jsonObject = new JsonObject(inputObject.Key);
+                var jsonObject = new JsonObjectBridge(inputObject.Key);
                 disposables.Add(jsonObject);
                 jsonObject.Object = inputObject.Value;
                 script.SetObject(jsonObject);
@@ -166,14 +214,14 @@ namespace Plaisted.PowershellHelper
             return outputTempFiles;
         }
 
-        private static Dictionary<string, object> ReadOutputs(List<KeyValuePair<string, string>> outputTempFiles, ILogger logger)
+        private static Dictionary<string, JObject> ReadOutputs(List<KeyValuePair<string, string>> outputTempFiles, ILogger logger)
         {
             using (var outputDisposables = new DisposableContainer())
             {
-                var outputDict = new Dictionary<string, object>();
+                var outputDict = new Dictionary<string, JObject>();
                 foreach (var output in outputTempFiles)
                 {
-                    var jsonObject = new JsonObject(output.Key);
+                    var jsonObject = new JsonObjectBridge(output.Key);
                     outputDisposables.Add(jsonObject);
                     if (File.Exists(output.Value))
                     {
@@ -192,7 +240,7 @@ namespace Plaisted.PowershellHelper
                         logger.LogError("[{EventName}] Object {Name} set to null.", "OutputNotFound", output.Key);
                         jsonObject.Object = null;
                     }
-                    outputDict.Add(output.Key, jsonObject.Object);
+                    outputDict.Add(output.Key, jsonObject.Object == null ? null : (JObject) jsonObject.Object);
                 }
                 return outputDict;
             }

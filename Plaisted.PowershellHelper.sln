@@ -11,9 +11,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{1BA54848-C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plaisted.PowershellHelper.Tests", "test\Plaisted.PowershellHelper.Tests\Plaisted.PowershellHelper.Tests.csproj", "{DA8BAC47-8189-4159-A872-25105EEBCB15}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Plaisted.PowershellHelper.IntegrationTests", "Plaisted.PowershellHelper.IntegrationTests\Plaisted.PowershellHelper.IntegrationTests.csproj", "{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plaisted.PowershellHelper.IntegrationTests", "Plaisted.PowershellHelper.IntegrationTests\Plaisted.PowershellHelper.IntegrationTests.csproj", "{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleTest", "ConsoleTest\ConsoleTest.csproj", "{052CD33D-B750-4880-8411-257744FF5D54}"
 EndProject
 Global
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -31,6 +36,10 @@ Global
 		{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20}.Release|Any CPU.Build.0 = Release|Any CPU
+		{052CD33D-B750-4880-8411-257744FF5D54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{052CD33D-B750-4880-8411-257744FF5D54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{052CD33D-B750-4880-8411-257744FF5D54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{052CD33D-B750-4880-8411-257744FF5D54}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -39,5 +48,9 @@ Global
 		{CEDCC77D-E04F-475C-B7FF-B97EEB21C49D} = {A6A36776-E88C-4577-B2D7-1B4B0AA45FF5}
 		{DA8BAC47-8189-4159-A872-25105EEBCB15} = {1BA54848-C536-4184-BB94-D2FCE1CA7DB4}
 		{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20} = {1BA54848-C536-4184-BB94-D2FCE1CA7DB4}
+		{052CD33D-B750-4880-8411-257744FF5D54} = {A6A36776-E88C-4577-B2D7-1B4B0AA45FF5}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal

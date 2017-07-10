@@ -6,12 +6,12 @@ using System.Text;
 
 namespace Plaisted.PowershellHelper
 {
-    public class JsonObject : IDisposable, IJsonObject
+    internal class JsonObjectBridge : IDisposable, IJsonObjectBridge
     {
         private object _object;
         private string tempFile;
         private string json { get; set; }
-        public JsonObject(string name)
+        public JsonObjectBridge(string name)
         {
             Name = name;
         }

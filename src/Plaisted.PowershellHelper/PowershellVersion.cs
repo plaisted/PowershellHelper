@@ -4,9 +4,12 @@ using System.Text;
 
 namespace Plaisted.PowershellHelper
 {
-    public enum JsonObjectType
+    public enum PowershellVersion
     {
-        Input,
-        Output
+        Default=0,
+        V2=2,
+        V3=3,
+        V4=4,
+        V5=5
     }
 }
