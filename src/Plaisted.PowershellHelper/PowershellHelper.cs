@@ -20,12 +20,14 @@ namespace Plaisted.PowershellHelper
         private bool processCleanup = true;
         private string workingDirectory;
         /// <summary>
+        /// Output from the Poweshell script. Objects to be returned set using <see cref="AddOutputObject(string)"/>. If no value set in script the result will be null in dictionary.
+        /// </summary>
+        public Dictionary<string, JObject> Output { get; private set; }
+
+        /// <summary>
         /// PowershellHelper runs powershell scripts in their own process allowing proper cleanup of spawned processes.
         /// </summary>
-        public PowershellHelper()
-        {
-
-        }
+        public PowershellHelper() { }
 
         /// <summary>
         /// PowershellHelper runs powershell scripts in their own process allowing proper cleanup of spawned processes.
@@ -139,7 +141,7 @@ namespace Plaisted.PowershellHelper
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns>Task of the dictionary containing JObjects of output objects.</returns>
-        public async Task<Dictionary<string, JObject>> Run(CancellationToken cancellationToken)
+        public async Task<int> Run(CancellationToken cancellationToken)
         {
             return await Run(cancellationToken, -1);
         }
@@ -149,7 +151,7 @@ namespace Plaisted.PowershellHelper
         /// <param name="cancellationToken"></param>
         /// <param name="millisecondsTimeout">Timeout length to wait for task to finish.</param>
         /// <returns>Task of the dictionary containing JObjects of output objects.</returns>
-        public async Task<Dictionary<string, JObject>> Run(CancellationToken cancellationToken, int millisecondsTimeout)
+        public async Task<int> Run(CancellationToken cancellationToken, int millisecondsTimeout)
         {
             using (var disposables = new DisposableContainer())
             {
@@ -186,9 +188,9 @@ namespace Plaisted.PowershellHelper
                 }
 
                 //read output files
-                var outputDict = ReadOutputs(outputTempFiles, _logger);
+                Output = ReadOutputs(outputTempFiles, _logger);
 
-                return outputDict;
+                return exitCode;
             }
         }
 

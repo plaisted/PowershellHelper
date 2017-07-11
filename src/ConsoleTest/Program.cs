@@ -31,8 +31,8 @@ namespace ConsoleTest
             helper.AddOutputObject("testObject");
 
             
-            var output = await helper.Run(token);
-            var returnedClass = ((JObject)output["testObject"]).ToObject<TestClass>();
+            var exitCode = await helper.Run(token);
+            var returnedClass = helper.Output["testObject"].ToObject<TestClass>();
             stopwatch.Stop();
         }
     }

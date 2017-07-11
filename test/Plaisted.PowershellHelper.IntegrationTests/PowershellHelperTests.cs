@@ -17,8 +17,8 @@ namespace Plaisted.PowershellHelper.IntegrationTests
             helper.AddOutputObject("testObject");
 
             
-            var output = await helper.Run(new System.Threading.CancellationToken());
-            var returnedClass = ((JObject)output["testObject"]).ToObject<TestClass>();
+            var exitcode = await helper.Run(new System.Threading.CancellationToken());
+            var returnedClass = helper.Output["testObject"].ToObject<TestClass>();
             Assert.Equal("myValue", returnedClass.TestProperty);
         }
         public class TestClass
