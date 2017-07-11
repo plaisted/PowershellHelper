@@ -22,7 +22,7 @@ namespace Plaisted.PowershellHelper
             si.RedirectStandardError = true;
             si.CreateNoWindow = true;
             si.FileName = "powershell.exe";
-            si.Arguments = scriptPath;
+            si.Arguments = "-noprofile -executionpolicy bypass -file " + scriptPath;
 
             process = new Process();
             process.StartInfo = si;
@@ -36,8 +36,10 @@ namespace Plaisted.PowershellHelper
         }
         public PowershellProcess WithPowershellVersion(PowershellVersion psVersion)
         {
-            si.Arguments = (psVersion == PowershellVersion.Default) ?
-                scriptPath : "-version " + ((int)psVersion).ToString() + " " + scriptPath;
+            if (psVersion != PowershellVersion.Default)
+            {
+                si.Arguments = "-version " + ((int)psVersion).ToString()+ " -noprofile -executionpolicy bypass -file " + scriptPath;
+            }
             return this;
         }
 
@@ -63,6 +65,8 @@ namespace Plaisted.PowershellHelper
                 process.EnableRaisingEvents = true;
                 process.Exited += (s, e) => completion.SetResult(process.ExitCode);
                 process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
 
                 var helperTask = (millisecondsTimeout == -1) ? timeout.Task :
                     Task.Delay(millisecondsTimeout, cancellationToken);
@@ -110,11 +114,11 @@ namespace Plaisted.PowershellHelper
 
         private void HandleOutputDataReceived(object sender, DataReceivedEventArgs e)
         {
-            logger.LogInformation("[{EventName}] {Data}", "StdOut", e.Data);
+            if (e.Data != null) logger.LogInformation("[{EventName}] {Data}", "StdOut", e.Data);
         }
         private void HandleErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
-            logger.LogError("[{EventName}] {Data}", "StdErr", e.Data);
+            if (e.Data != null) logger.LogError("[{EventName}] {Data}", "StdErr", e.Data);
         }
     }
 }

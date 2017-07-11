@@ -169,7 +169,7 @@ namespace Plaisted.PowershellHelper
                 var outputTempFiles = AddOutputsToScript(outputObjects, script);
 
                 //run
-                var process = new PowershellProcess(script.CreateTempFile());
+                var process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
                 if (!string.IsNullOrEmpty(workingDirectory))
                 {
                     process.WithWorkingDirectory(workingDirectory);
@@ -184,7 +184,11 @@ namespace Plaisted.PowershellHelper
                     disposables.Add(cleanupScript);
                     cleanupScript.AddCommand($"Get-CimInstance Win32_Process -Filter ParentProcessId={process.ProcessId.ToString()} " + 
                         "| % { Stop-Process -id $_.ProcessId -Force }");
-                    await new PowershellProcess(cleanupScript.CreateTempFile()).RunAsync(new CancellationToken());
+                    var pec = await new PowershellProcess(cleanupScript.CreateTempFile()).WithLogging(_logger).RunAsync(new CancellationToken());
+                    if (pec != 0)
+                    {
+                        _logger.LogError("[{EventName}] Process cleanup script ended with {ExitCode}.", "CleanupError", pec);
+                    };
                 }
 
                 //read output files
