@@ -12,6 +12,7 @@ namespace Plaisted.PowershellHelper
         private Process process;
         private ILogger logger = new OptionalLogger();
         public int ProcessId { get { return process.Id; } }
+        public int ExitCode { get { return process.ExitCode; } }
 
         public PowershellProcess(string scriptPath)
         {
@@ -49,14 +50,13 @@ namespace Plaisted.PowershellHelper
             return this;
         }
 
-        public async Task<int> RunAsync(CancellationToken cancellationToken)
+        public async Task<PowershellStatus> RunAsync(CancellationToken cancellationToken)
         {
             return await RunAsync(cancellationToken, -1);
         }
 
-        public async Task<int> RunAsync(CancellationToken cancellationToken, int millisecondsTimeout)
+        public async Task<PowershellStatus> RunAsync(CancellationToken cancellationToken, int millisecondsTimeout)
         {
-
             var completion = new TaskCompletionSource<int>();
             var timeout = new TaskCompletionSource<object>();
             using (cancellationToken.Register(() => timeout.TrySetCanceled()))
@@ -78,21 +78,23 @@ namespace Plaisted.PowershellHelper
                     //completed
                     await completion.Task;
                     logger.LogInformation("[{EventName}] {ExitCode}", "ProcessCompleted", process.ExitCode);
+                    return PowershellStatus.Exited;
                 }
                 else if (cancellationToken.IsCancellationRequested)
                 {
                     //cancellation requestion
                     logger.LogInformation("[{EventName}]", "ProcessCancelled");
                     process.Kill();
+                    return PowershellStatus.Cancelled;
                 }
                 else
                 {
                     //timeout
                     logger.LogInformation("[{EventName}] {TimeOut} elapsed.", "ProcessTimeoutExpired", millisecondsTimeout);
                     process.Kill();
+                    return PowershellStatus.TimedOut;
                 }
             }
-            return process.ExitCode;
         }
 
         public void AddOutputDataReceivedHandler(DataReceivedEventHandler handler)

@@ -35,7 +35,11 @@ namespace Plaisted.PowershellHelper
         }
         public void SetObject(IJsonObjectBridge jsonObject)
         {
-            SetObject(jsonObject.Name, jsonObject.CreateTempFile());
+            SetObject(jsonObject.EscapedName, jsonObject.CreateTempFile());
+        }
+        public void SetOutObject(IJsonObjectBridge jsonObject)
+        {
+            SetOutObject(jsonObject.EscapedName, jsonObject.TemporaryFile);
         }
         public string CreateTempFile()
         {

@@ -23,6 +23,7 @@ namespace Plaisted.PowershellHelper
         /// Output from the Poweshell script. Objects to be returned set using <see cref="AddOutputObject(string)"/>. If no value set in script the result will be null in dictionary.
         /// </summary>
         public Dictionary<string, JObject> Output { get; private set; }
+        public int ExitCode { get; private set; }
 
         /// <summary>
         /// PowershellHelper runs powershell scripts in their own process allowing proper cleanup of spawned processes.
@@ -141,7 +142,7 @@ namespace Plaisted.PowershellHelper
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns>Task of the dictionary containing JObjects of output objects.</returns>
-        public async Task<int> Run(CancellationToken cancellationToken)
+        public async Task<PowershellStatus> Run(CancellationToken cancellationToken)
         {
             return await Run(cancellationToken, -1);
         }
@@ -151,7 +152,7 @@ namespace Plaisted.PowershellHelper
         /// <param name="cancellationToken"></param>
         /// <param name="millisecondsTimeout">Timeout length to wait for task to finish.</param>
         /// <returns>Task of the dictionary containing JObjects of output objects.</returns>
-        public async Task<int> Run(CancellationToken cancellationToken, int millisecondsTimeout)
+        public async Task<PowershellStatus> Run(CancellationToken cancellationToken, int millisecondsTimeout)
         {
             using (var disposables = new DisposableContainer())
             {
@@ -174,7 +175,8 @@ namespace Plaisted.PowershellHelper
                 {
                     process.WithWorkingDirectory(workingDirectory);
                 }
-                int exitCode = await process.RunAsync(cancellationToken, millisecondsTimeout);
+                var exitReason = await process.RunAsync(cancellationToken, millisecondsTimeout);
+                ExitCode = process.ExitCode;
 
 
                 //kill spawned processes
@@ -194,7 +196,7 @@ namespace Plaisted.PowershellHelper
                 //read output files
                 Output = ReadOutputs(outputTempFiles, _logger);
 
-                return exitCode;
+                return exitReason;
             }
         }
 
@@ -208,45 +210,44 @@ namespace Plaisted.PowershellHelper
                 script.SetObject(jsonObject);
             }
         }
-        private static List<KeyValuePair<string, string>> AddOutputsToScript(List<string> outputObjects, IPowershellScript script)
+        private static List<IJsonObjectBridge> AddOutputsToScript(List<string> outputObjects, IPowershellScript script)
         {
-            var outputTempFiles = new List<KeyValuePair<string, string>>();
+            var outputTempFiles = new List<IJsonObjectBridge>();
             foreach (var output in outputObjects)
             {
-                var tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".json");
-                script.SetOutObject(output, tempFile);
-                outputTempFiles.Add(new KeyValuePair<string, string>(output, tempFile));
+                var jsonObject = new JsonObjectBridge(output);
+                script.SetOutObject(jsonObject);
+                outputTempFiles.Add(jsonObject);
             }
             return outputTempFiles;
         }
 
-        private static Dictionary<string, JObject> ReadOutputs(List<KeyValuePair<string, string>> outputTempFiles, ILogger logger)
+        private static Dictionary<string, JObject> ReadOutputs(List<IJsonObjectBridge> outputTempFiles, ILogger logger)
         {
             using (var outputDisposables = new DisposableContainer())
             {
                 var outputDict = new Dictionary<string, JObject>();
                 foreach (var output in outputTempFiles)
                 {
-                    var jsonObject = new JsonObjectBridge(output.Key);
-                    outputDisposables.Add(jsonObject);
-                    if (File.Exists(output.Value))
+                    if (File.Exists(output.TemporaryFile))
                     {
                         //read values
                         try
                         {
-                            jsonObject.FromTempFile(output.Value);
+                            output.ReadFromTempFile();
                         }
                         catch (JsonException e)
                         {
-                            logger.LogError("[{EventName}] {Exception} for object {Name}.", "DeserializationError", e.ToString(), output.Key);
+                            logger.LogError("[{EventName}] {Exception} for object {Name}.", "DeserializationError", e.ToString(), output.Name);
                         }
                     }
                     else
                     {
-                        logger.LogError("[{EventName}] Object {Name} set to null.", "OutputNotFound", output.Key);
-                        jsonObject.Object = null;
+                        //script will not write output if value null in script
+                        logger.LogError("[{EventName}] Object {Name} set to null.", "OutputNotFound", output.Name);
+                        output.Object = null;
                     }
-                    outputDict.Add(output.Key, jsonObject.Object == null ? null : (JObject) jsonObject.Object);
+                    outputDict.Add(output.Name, output.Object == null ? null : (JObject)output.Object);
                 }
                 return outputDict;
             }

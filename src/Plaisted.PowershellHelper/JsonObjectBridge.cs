@@ -3,18 +3,22 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Plaisted.PowershellHelper
 {
     internal class JsonObjectBridge : IDisposable, IJsonObjectBridge
     {
         private object _object;
-        private string tempFile;
+        private string _name;
+        private Regex standardVarNames = new Regex("^[a-zA-Z0-9_]*$", RegexOptions.Compiled);
         private string json { get; set; }
         public JsonObjectBridge(string name)
         {
             Name = name;
+            TemporaryFile = GetTempFileName();
         }
+        public string TemporaryFile { get; private set; }
         /// <summary>
         /// C# object to be serialized and sent to Powershell scripting environment.
         /// </summary>
@@ -36,24 +40,42 @@ namespace Plaisted.PowershellHelper
         /// </summary>
         public string Name { get; set; }
         /// <summary>
+        /// Escaped name for use in powershell script.
+        /// </summary>
+        public string EscapedName
+        {
+            get
+            {
+                var tempName = Name;
+                if (tempName.Contains("`")) { tempName = tempName.Replace("`", "``"); }
+                if (tempName.Contains("{")) { tempName = tempName.Replace("{", "`{"); }
+                if (tempName.Contains("}")) { tempName = tempName.Replace("}", "`}"); }
+                if (!standardVarNames.IsMatch(tempName))
+                { tempName = "{" + tempName + "}"; }
+                return tempName;
+            }
+        }
+        /// <summary>
         /// Creates a temporary file with <see cref="json"/> as contents and returns path of file.
         /// </summary>
         /// <returns>Path of temporary file created.</returns>
         public string CreateTempFile()
         {
-            tempFile = Path.GetTempFileName();
-            File.WriteAllText(tempFile, json);
-            return tempFile;
+            File.WriteAllText(TemporaryFile, json);
+            return TemporaryFile;
         }
-        public void FromTempFile(string tempFile)
+        public void ReadFromTempFile()
         {
-            this.tempFile = tempFile;
-            json = File.ReadAllText(tempFile);
+            json = File.ReadAllText(TemporaryFile);
             _object = JsonConvert.DeserializeObject(json);
         }
         public void Dispose()
         {
-            File.Delete(tempFile);
+            File.Delete(TemporaryFile);
+        }
+        private string GetTempFileName()
+        {
+            return Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".json");
         }
     }
 }

@@ -13,5 +13,6 @@ namespace Plaisted.PowershellHelper
         void SetObject(IJsonObjectBridge jsonObject);
         void SetObject(string objectName, string tempJsonFile);
         void SetOutObject(string objectName, string tempJsonFile);
+        void SetOutObject(IJsonObjectBridge jsonObject);
     }
 }

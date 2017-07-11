@@ -65,7 +65,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
                     var process = new Process();
                     var si = new ProcessStartInfo();
                     si.FileName = "powershell.exe";
-                    si.Arguments = tempFile;
+                    si.Arguments = "-file " + tempFile;
                     si.UseShellExecute = false;
                     process.StartInfo = si;
                     process.Start();
@@ -76,6 +76,40 @@ namespace Plaisted.PowershellHelper.IntegrationTests
                 //verify deletion
                 Assert.Equal(stopOnErrors, File.Exists(testFile));
                 
+            }
+        }
+
+        [Fact]
+        public void It_Should_Stop_On_Throw()
+        {
+            using (var workspace = new TemporaryWorkspace())
+            {
+                //setup dummy file to delete
+                var testFile = workspace.AddFileWithContents("test.txt", "testing");
+
+                using (var script = new PowershellScript())
+                {
+                    //add error
+                    script.AddCommand("throw 'test'");
+                    //add delete command
+                    script.AddCommand("Remove-Item " + testFile);
+                    var tempFile = script.CreateTempFile();
+
+                    //run
+                    var process = new Process();
+                    var si = new ProcessStartInfo();
+                    si.FileName = "powershell.exe";
+                    si.Arguments = "-file " + tempFile;
+                    si.UseShellExecute = false;
+                    process.StartInfo = si;
+                    process.Start();
+                    process.WaitForExit();
+                    Assert.False(process.ExitCode == 0);
+                }
+
+                //verify deletion
+                Assert.True(File.Exists(testFile));
+
             }
         }
 
@@ -102,7 +136,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
                     var process = new Process();
                     var si = new ProcessStartInfo();
                     si.FileName = "powershell.exe";
-                    si.Arguments = tempFile;
+                    si.Arguments = "-file " + tempFile;
                     si.RedirectStandardOutput = true;
                     si.RedirectStandardError = true;
                     si.UseShellExecute = false;
@@ -130,6 +164,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
                 var mockJson = new Mock<IJsonObjectBridge>();
                 mockJson.Setup(x => x.CreateTempFile()).Returns(jsonFile);
                 mockJson.Setup(x => x.Name).Returns("testObject");
+                mockJson.Setup(x => x.EscapedName).Returns("testObject");
 
                 using (var script = new PowershellScript())
                 {
@@ -147,7 +182,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
                     var process = new Process();
                     var si = new ProcessStartInfo();
                     si.FileName = "powershell.exe";
-                    si.Arguments = tempFile;
+                    si.Arguments = "-file " + tempFile;
                     si.RedirectStandardOutput = true;
                     si.RedirectStandardError = true;
                     si.UseShellExecute = false;
