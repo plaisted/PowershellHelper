@@ -10,7 +10,6 @@ namespace Plaisted.PowershellHelper
     internal class JsonObjectBridge : IDisposable, IJsonObjectBridge
     {
         private object _object;
-        private string _name;
         private Regex standardVarNames = new Regex("^[a-zA-Z0-9_]*$", RegexOptions.Compiled);
         private string json { get; set; }
         public JsonObjectBridge(string name)

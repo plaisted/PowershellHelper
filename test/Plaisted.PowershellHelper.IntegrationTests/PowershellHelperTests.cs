@@ -12,7 +12,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
         public async void It_Sets_And_Retrieves_Value()
         {
 
-            var helper = new PowershellHelper().WithProcessCleanup(false);
+            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.None);
             helper.AddInputObject("testObject", new TestClass { TestProperty = "myValue" });
             helper.AddOutputObject("testObject");
 
@@ -26,7 +26,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
         public async void It_Sets_And_Retrieves_Value_Odd_VarName()
         {
 
-            var helper = new PowershellHelper().WithProcessCleanup(false);
+            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.None);
             helper.AddInputObject("te``st! Ob`{je}ct", new TestClass { TestProperty = "myValue" });
             helper.AddOutputObject("te``st! Ob`{je}ct");
 
@@ -40,7 +40,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
         public async void It_Handles_Null_Output()
         {
 
-            var helper = new PowershellHelper().WithProcessCleanup(false);
+            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.None);
             helper.AddOutputObject("notSet");
 
 

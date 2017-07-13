@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Plaisted.PowershellHelper;
 using System;
@@ -12,28 +13,33 @@ namespace ConsoleTest
     {
         static void Main(string[] args)
         {
+            ILoggerFactory loggerFactory = new LoggerFactory()
+                .AddConsole();
+
             var dummy = JsonConvert.SerializeObject(new {  });
             var stopwatch = new Stopwatch();
-            var task = Task.Run(() => RunTest(new CancellationToken(), stopwatch));
+            var task = Task.Run(() => RunTest(new CancellationToken(), stopwatch, loggerFactory));
             task.Wait();
-            Console.WriteLine(stopwatch.ElapsedMilliseconds);
             Console.ReadLine();
         }
 
-        static async void RunTest(CancellationToken token, Stopwatch stopwatch)
+        static async void RunTest(CancellationToken token, Stopwatch stopwatch, ILoggerFactory loggerFactory)
         {
             stopwatch.Start();
-            var helper = new PowershellHelper();
-            helper.AddInputObject("testObject", new TestClass { TestProperty = "myValue" });
-            helper.AddCommand("notepad.exe");
-            helper.AddCommand("notepad.exe");
-            helper.AddCommand("notepad.exe");
-            helper.AddOutputObject("testObject");
+            var helper = new PowershellHelper(loggerFactory).WithProcessCleanup(CleanupType.Children);
+            //helper.AddInputObject("testObject", new TestClass { TestProperty = "myValue" });
+            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
+            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
+            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
+            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
+            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
+            helper.AddCommand("Write-Host 'test'");
+            //helper.AddOutputObject("testObject");
 
-            
             var exitCode = await helper.Run(token);
-            var returnedClass = helper.Output["testObject"].ToObject<TestClass>();
+
             stopwatch.Stop();
+            Console.WriteLine(stopwatch.ElapsedMilliseconds);
         }
     }
 }

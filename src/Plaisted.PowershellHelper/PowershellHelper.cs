@@ -17,7 +17,7 @@ namespace Plaisted.PowershellHelper
         private List<string> commands = new List<string>();
         private List<KeyValuePair<string, object>> inputObjects = new List<KeyValuePair<string, object>>();
         private List<string> outputObjects = new List<string>();
-        private bool processCleanup = true;
+        private CleanupType processCleanup = CleanupType.Recursive;
         private string workingDirectory;
         /// <summary>
         /// Output from the Poweshell script. Objects to be returned set using <see cref="AddOutputObject(string)"/>. If no value set in script the result will be null in dictionary.
@@ -81,7 +81,7 @@ namespace Plaisted.PowershellHelper
         /// </summary>
         /// <param name="value"></param>
         /// <returns></returns>
-        public PowershellHelper WithProcessCleanup(bool value)
+        public PowershellHelper WithProcessCleanup(CleanupType value)
         {
             processCleanup = value;
             return this;
@@ -151,7 +151,7 @@ namespace Plaisted.PowershellHelper
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <param name="millisecondsTimeout">Timeout length to wait for task to finish.</param>
-        /// <returns>Task of the dictionary containing JObjects of output objects.</returns>
+        /// <returns>Task of completion status.</returns>
         public async Task<PowershellStatus> Run(CancellationToken cancellationToken, int millisecondsTimeout)
         {
             using (var disposables = new DisposableContainer())
@@ -159,6 +159,7 @@ namespace Plaisted.PowershellHelper
                 //main script
                 var script = new PowershellScript();
                 disposables.Add(script);
+
 
                 //add inputs
                 AddInputsToScript(inputObjects, script, disposables);
@@ -169,28 +170,67 @@ namespace Plaisted.PowershellHelper
                 //add outputs
                 var outputTempFiles = AddOutputsToScript(outputObjects, script);
 
+                //add wait commands if needed and create trigger
+                var tempTriggerFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".tmp");
+                if (processCleanup == CleanupType.Recursive)
+                {
+                    File.WriteAllText(tempTriggerFile, "tmp");
+                    script.WaitOnTriggerDeletion(tempTriggerFile);
+                }
+
                 //run
                 var process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
                 if (!string.IsNullOrEmpty(workingDirectory))
                 {
                     process.WithWorkingDirectory(workingDirectory);
                 }
-                var exitReason = await process.RunAsync(cancellationToken, millisecondsTimeout);
-                ExitCode = process.ExitCode;
+                _logger.LogInformation("[{EventName}]", "StartMainScript");
 
+                var mainScriptTask = process.RunAsync(cancellationToken, millisecondsTimeout);
+
+                Task<PowershellStatus> cleanupTask = null;
+                if (processCleanup == CleanupType.Recursive)
+                {
+                    _logger.LogInformation("[{EventName}] {PId}", "StartCleanupScript", process.ProcessId);
+                    cleanupTask = new PowershellProcess(PowershellScript.CreateTempMonitoringScript(process.ProcessId, tempTriggerFile))
+                                            .WithLogging(_logger).RunAsync(new CancellationToken());
+                }
+
+                var exitReason = await mainScriptTask;
+                ExitCode = process.ExitCode;
+                _logger.LogInformation("[{EventName}] {ExitCode}", "FinishedMainScript", ExitCode);
+
+                //wait for recursive to finish is set
+                if (processCleanup == CleanupType.Recursive)
+                {
+                    var pec = await cleanupTask;
+                    if (pec != 0)
+                    {
+                        _logger.LogError("[{EventName}] Process cleanup script ended with {ExitCode}.", "CleanupError", pec);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("[{EventName}]", "FinishedCleanupScript");
+                    }
+                }
 
                 //kill spawned processes
-                if (processCleanup)
+                //works for non-admin but doesn't get recursive processes
+                if (processCleanup == CleanupType.Children)
                 {
+                    _logger.LogInformation("[{EventName}] {PId}", "StartCleanupScript", process.ProcessId);
                     var cleanupScript = new PowershellScript();
                     disposables.Add(cleanupScript);
                     cleanupScript.AddCommand($"Get-CimInstance Win32_Process -Filter ParentProcessId={process.ProcessId.ToString()} " + 
-                        "| % { Stop-Process -id $_.ProcessId -Force }");
+                        "| % { Write-Host (\"Killing spawned process id \" + $_.ProcessId + \".\"); Stop-Process -id $_.ProcessId -Force }");
                     var pec = await new PowershellProcess(cleanupScript.CreateTempFile()).WithLogging(_logger).RunAsync(new CancellationToken());
                     if (pec != 0)
                     {
                         _logger.LogError("[{EventName}] Process cleanup script ended with {ExitCode}.", "CleanupError", pec);
-                    };
+                    } else
+                    {
+                        _logger.LogInformation("[{EventName}]", "FinishedCleanupScript");
+                    }
                 }
 
                 //read output files

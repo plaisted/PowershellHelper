@@ -11,7 +11,7 @@ namespace Plaisted.PowershellHelper
         private string scriptPath;
         private Process process;
         private ILogger logger = new OptionalLogger();
-        public int ProcessId { get { return process.Id; } }
+        public int ProcessId { get; internal set; }
         public int ExitCode { get { return process.ExitCode; } }
 
         public PowershellProcess(string scriptPath)
@@ -65,6 +65,7 @@ namespace Plaisted.PowershellHelper
                 process.EnableRaisingEvents = true;
                 process.Exited += (s, e) => completion.SetResult(process.ExitCode);
                 process.Start();
+                ProcessId = process.Id;
                 process.BeginOutputReadLine();
                 process.BeginErrorReadLine();
 
