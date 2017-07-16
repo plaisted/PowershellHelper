@@ -50,3 +50,20 @@ CeanupType.RecursiveAdmin
 ```
 Spawns a secondary powershell process in order to capture process created events to recursively kill processes after main script has completed. This will catch abandoned processes with broken family tree. REQUIRES ADMIN.
 
+# Input / Output
+Powershell helper supports passing data objects between c# and the powershell script. 
+```csharp
+var helper = new PowershellHelper(loggerFactory).WithProcessCleanup(CleanupType.RecursiveAdmin);
+helper.AddInputObject("testObject", new TestClass { TestProperty = "testValue" });
+helper.AddCommand("$testObject.TestProperty = 'newTestValue'");
+helper.AddOutputObject("testObject");
+var exitCode = await helper.Run(cancellationToken);
+var scriptOutput = helper.Output["testObject"].ToObject<TestClass>();
+Console.WriteLine("New value is: " + scriptOutput.TestProperty);
+
+\\\Output -> New value is: newTestValue
+```
+The objects are serialized/deserialized into JSON so methods will not be transfered between the environments.
+
+# Perfomance
+If performance is of concern, this library is likely not a good choice. Spawning watcher processes and monitoring created processes adds considerable overhead to running the scripts. Increase in total execution time for powershell scripts of 1-2 seconds is common.
