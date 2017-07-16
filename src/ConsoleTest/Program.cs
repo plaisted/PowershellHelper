@@ -23,24 +23,30 @@ namespace ConsoleTest
             Console.ReadLine();
         }
 
-        static async void RunTest(CancellationToken token, Stopwatch stopwatch, ILoggerFactory loggerFactory)
+        static async void RunTest(CancellationToken cancellationToken, Stopwatch stopwatch, ILoggerFactory loggerFactory)
         {
             stopwatch.Start();
-            var helper = new PowershellHelper(loggerFactory).WithProcessCleanup(CleanupType.Recursive);
-            //helper.AddInputObject("testObject", new TestClass { TestProperty = "myValue" });
-            helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
-            helper.AddCommand("Write-Host 'block?'");
-            helper.AddCommand("notepad.exe");
-            helper.AddCommand("notepad.exe");
-            helper.AddCommand("Write-Host 'out1'");
-            helper.AddCommand("Write-Host 'out2'");
-            //helper.AddCommand("Write-Host 'test from script'");
-            //helper.AddOutputObject("testObject");
 
-            var exitCode = await helper.Run(token);
+            //var helper = new PowershellHelper(loggerFactory).WithProcessCleanup(CleanupType.RecursiveAdmin);
+            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
+            //helper.AddCommand("notepad.exe");
+            //var exitCode = await helper.Run(cancellationToken);
+
+            var helper = new PowershellHelper(loggerFactory).WithProcessCleanup(CleanupType.None);
+            //helper.AddInputObject("testObject", new TestClass { TestProperty = "testValue" });
+            //helper.AddCommand("$testObject.TestProperty = 'newTestValue'");
+            helper.AddCommand("Write-Output hello");
+            //helper.AddOutputObject("testObject");
+            var exitCode = await helper.Run(cancellationToken);
 
             stopwatch.Stop();
             Console.WriteLine(stopwatch.ElapsedMilliseconds);
+
+            //var scriptOutput = helper.Output["testObject"].ToObject<TestClass>();
+            //Console.WriteLine("New value is: " + scriptOutput.TestProperty);
+
+
+
         }
     }
 }

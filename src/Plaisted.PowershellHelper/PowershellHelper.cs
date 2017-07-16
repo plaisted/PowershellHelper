@@ -17,7 +17,7 @@ namespace Plaisted.PowershellHelper
         private List<string> commands = new List<string>();
         private List<KeyValuePair<string, object>> inputObjects = new List<KeyValuePair<string, object>>();
         private List<string> outputObjects = new List<string>();
-        private CleanupType processCleanup = CleanupType.Recursive;
+        private CleanupType processCleanup = CleanupType.RecursiveAdmin;
         private string workingDirectory;
         /// <summary>
         /// Output from the Poweshell script. Objects to be returned set using <see cref="AddOutputObject(string)"/>. If no value set in script the result will be null in dictionary.
@@ -172,7 +172,7 @@ namespace Plaisted.PowershellHelper
 
                 
                 PowershellProcess process = null;
-                if (processCleanup == CleanupType.Recursive)
+                if (processCleanup == CleanupType.RecursiveAdmin)
                 {
                     //use admin based cleanup if requested
                     var wrapper = TempScript.GetTempWrapperScript();
@@ -201,7 +201,7 @@ namespace Plaisted.PowershellHelper
 
                 //kill spawned processes
                 //works for non-admin but doesn't get recursive processes
-                if (processCleanup == CleanupType.Children)
+                if (processCleanup == CleanupType.Recursive)
                 {
                     using (var cleanupScript = TempScript.GetNonAdminCleaupScript())
                     {

@@ -20,6 +20,7 @@ function Kill-Children
 	"Requested recursive kill of $pidToKill." | Log-To-File
 	if ($pidToKill -eq $pid){
 		#suicide is bad
+		"$pid is this watcher process, skipping." | Log-To-File
 		return;
 	}
     $processList | Where {$_.ParentProcessId -eq $pidToKill } | % { Kill-Children -pidToKill $_.ProcessId -processList $processList }
@@ -30,7 +31,7 @@ function Kill-Children
 		Stop-Process -Id $pidToKill -Force -ErrorAction SilentlyContinue
         "Killing $pidToKill." | Log-To-File
     } else {
-		"Proc $pidToKill does not exist." | Log-To-File
+		"Proc $pidToKill already exited." | Log-To-File
 	}
 }
 ## Capture process creation events to list
@@ -44,7 +45,7 @@ $psh_EventAction =
 }
 
 
-"Entering script ($processToMonitor)." | Log-To-File
+"Watcher script started for process $processToMonitor." | Log-To-File
 ## Set up watchers
 $query = "select * from win32_ProcessStartTrace"
 $endQuery = "select * from win32_ProcessStopTrace where ProcessId=$processToMonitor"
@@ -52,15 +53,19 @@ $global:psh_Processes = [System.Collections.ArrayList]@()
 $global:stillRunning = $true
 Register-CimIndicationEvent -Query $query -SourceIdentifier procMon -Action $psh_EventAction | Out-Null
 Register-CimIndicationEvent -Query $endQuery -SourceIdentifier endQuery -Action { $global:stillRunning = $false }  | Out-Null
-"Watchers setup." | Log-To-File
 
 ##send msg back to host to run script
 Write-Host "Monitor Started: $processToMonitor"
 
 while ($global:stillRunning)
 {
+	$mainProc = Get-Process -Id $processToMonitor -ErrorAction SilentlyContinue
+	if ($mainProc -eq $null)
+	{
+		##double check in case we missed event somehow as to not get stuck in loop
+		break;
+	}
     Wait-Process -Id $processToMonitor -Timeout 1 -ErrorAction SilentlyContinue
-	"Waiting for process to exit." | Log-To-File
 }
 
 "Process exited, waiting for events to flush." | Log-To-File
@@ -68,9 +73,10 @@ Start-Sleep -m 2000
 Get-EventSubscriber -SourceIdentifier procMon | Unregister-Event
 Get-EventSubscriber -SourceIdentifier endQuery | Unregister-Event
 
+"Process creations recorded:" | Log-To-File
 $global:psh_Processes | Log-To-File
 Kill-Children -pidToKill $processToMonitor -processList $global:psh_Processes
-"Finished." | Log-To-File
+"Watcher script finished for process $processToMonitor." | Log-To-File
 
 trap{
 	$_ | Log-To-File

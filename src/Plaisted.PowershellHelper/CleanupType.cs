@@ -12,14 +12,14 @@ namespace Plaisted.PowershellHelper
         /// </summary>
         None=0,
         /// <summary>
-        /// Spawns a secondary powershell process after completion of first to kill all processes with the main task as
-        /// their parent.
+        /// Spawns a secondary powershell process after completion of first to recursively kill all processes spawned by the
+        /// main task.
         /// </summary>
-        Children=1,
+        Recursive=1,
         /// <summary>
         /// Spawns a secondary powershell process in order to capture process created events to recursively kill processes
         /// after main script has completed.
         /// </summary>
-        Recursive=2
+        RecursiveAdmin=2
     }
 }
