@@ -26,14 +26,15 @@ namespace ConsoleTest
         static async void RunTest(CancellationToken token, Stopwatch stopwatch, ILoggerFactory loggerFactory)
         {
             stopwatch.Start();
-            var helper = new PowershellHelper(loggerFactory).WithProcessCleanup(CleanupType.Children);
+            var helper = new PowershellHelper(loggerFactory).WithProcessCleanup(CleanupType.Recursive);
             //helper.AddInputObject("testObject", new TestClass { TestProperty = "myValue" });
-            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
-            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
-            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
-            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
-            //helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
-            helper.AddCommand("Write-Host 'test'");
+            helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
+            helper.AddCommand("Write-Host 'block?'");
+            helper.AddCommand("notepad.exe");
+            helper.AddCommand("notepad.exe");
+            helper.AddCommand("Write-Host 'out1'");
+            helper.AddCommand("Write-Host 'out2'");
+            //helper.AddCommand("Write-Host 'test from script'");
             //helper.AddOutputObject("testObject");
 
             var exitCode = await helper.Run(token);

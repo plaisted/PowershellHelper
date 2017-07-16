@@ -170,67 +170,53 @@ namespace Plaisted.PowershellHelper
                 //add outputs
                 var outputTempFiles = AddOutputsToScript(outputObjects, script);
 
-                //add wait commands if needed and create trigger
-                var tempTriggerFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".tmp");
+                
+                PowershellProcess process = null;
                 if (processCleanup == CleanupType.Recursive)
                 {
-                    File.WriteAllText(tempTriggerFile, "tmp");
-                    script.WaitOnTriggerDeletion(tempTriggerFile);
+                    //use admin based cleanup if requested
+                    var wrapper = TempScript.GetTempWrapperScript();
+                    disposables.Add(wrapper);
+                    var watcher = TempScript.GetTempWatcherScript();
+                    disposables.Add(watcher);
+                    var main = script.CreateTempFile();
+                    process = new PowershellProcess(wrapper.Path).AddArgs($"-watcherScriptPath \"{watcher.Path}\" -userScriptPath \"{main}\"").WithLogging(_logger);
+                } else
+                {
+                    //standard run
+                    process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
                 }
 
-                //run
-                var process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
                 if (!string.IsNullOrEmpty(workingDirectory))
                 {
                     process.WithWorkingDirectory(workingDirectory);
                 }
                 _logger.LogInformation("[{EventName}]", "StartMainScript");
-
-                var mainScriptTask = process.RunAsync(cancellationToken, millisecondsTimeout);
-
-                Task<PowershellStatus> cleanupTask = null;
-                if (processCleanup == CleanupType.Recursive)
-                {
-                    _logger.LogInformation("[{EventName}] {PId}", "StartCleanupScript", process.ProcessId);
-                    cleanupTask = new PowershellProcess(PowershellScript.CreateTempMonitoringScript(process.ProcessId, tempTriggerFile))
-                                            .WithLogging(_logger).RunAsync(new CancellationToken());
-                }
-
-                var exitReason = await mainScriptTask;
+                
+                var exitReason = await process.RunAsync(cancellationToken, millisecondsTimeout); ;
+                
                 ExitCode = process.ExitCode;
+                
                 _logger.LogInformation("[{EventName}] {ExitCode}", "FinishedMainScript", ExitCode);
-
-                //wait for recursive to finish is set
-                if (processCleanup == CleanupType.Recursive)
-                {
-                    var pec = await cleanupTask;
-                    if (pec != 0)
-                    {
-                        _logger.LogError("[{EventName}] Process cleanup script ended with {ExitCode}.", "CleanupError", pec);
-                    }
-                    else
-                    {
-                        _logger.LogInformation("[{EventName}]", "FinishedCleanupScript");
-                    }
-                }
 
                 //kill spawned processes
                 //works for non-admin but doesn't get recursive processes
                 if (processCleanup == CleanupType.Children)
                 {
-                    _logger.LogInformation("[{EventName}] {PId}", "StartCleanupScript", process.ProcessId);
-                    var cleanupScript = new PowershellScript();
-                    disposables.Add(cleanupScript);
-                    cleanupScript.AddCommand($"Get-CimInstance Win32_Process -Filter ParentProcessId={process.ProcessId.ToString()} " + 
-                        "| % { Write-Host (\"Killing spawned process id \" + $_.ProcessId + \".\"); Stop-Process -id $_.ProcessId -Force }");
-                    var pec = await new PowershellProcess(cleanupScript.CreateTempFile()).WithLogging(_logger).RunAsync(new CancellationToken());
-                    if (pec != 0)
+                    using (var cleanupScript = TempScript.GetNonAdminCleaupScript())
                     {
-                        _logger.LogError("[{EventName}] Process cleanup script ended with {ExitCode}.", "CleanupError", pec);
-                    } else
-                    {
-                        _logger.LogInformation("[{EventName}]", "FinishedCleanupScript");
+                        _logger.LogInformation("[{EventName}] {PId}", "StartCleanupScript", process.ProcessId);
+                        var pec = await new PowershellProcess(cleanupScript.Path).WithLogging(_logger).RunAsync(new CancellationToken());
+                        if (pec != 0)
+                        {
+                            _logger.LogError("[{EventName}] Process cleanup script ended with {ExitCode}.", "CleanupError", pec);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("[{EventName}]", "FinishedCleanupScript");
+                        }
                     }
+
                 }
 
                 //read output files

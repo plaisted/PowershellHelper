@@ -29,6 +29,7 @@ namespace Plaisted.PowershellHelper
             process.StartInfo = si;
             process.OutputDataReceived += HandleOutputDataReceived;
             process.ErrorDataReceived += HandleErrorDataReceived;
+            
         }
         public PowershellProcess WithWorkingDirectory(string path)
         {
@@ -49,6 +50,12 @@ namespace Plaisted.PowershellHelper
             this.logger = logger;
             return this;
         }
+        public PowershellProcess AddArgs(string args)
+        {
+            si.Arguments += " " + args;
+            return this;
+        }
+
 
         public async Task<PowershellStatus> RunAsync(CancellationToken cancellationToken)
         {
