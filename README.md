@@ -1,5 +1,5 @@
 # PowershellHelper
-PowershellHelper is a library for running PowerShell scripts from C# in their own process and cleaning abandoned processes after they have exited.
+PowershellHelper is a library for running PowerShell scripts from C# in their own process and cleaning up abandoned processes after the script has exited.
 
 Example script run from c# using the libarry:
 ```csharp
