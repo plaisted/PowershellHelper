@@ -5,7 +5,7 @@ Write-Output "Starting"
 
 $psh_si = new-object System.Diagnostics.Process
 $psh_si.StartInfo.Filename = "powershell.exe"
-$psh_si.StartInfo.Arguments = "-noprofile -executionpolicy bypass -File $watcherScriptPath -ProcessToMonitor $pid -logFile c:\test\trace.log"
+$psh_si.StartInfo.Arguments = "-noprofile -executionpolicy bypass -File $watcherScriptPath -ProcessToMonitor $pid"
 $psh_si.StartInfo.UseShellExecute = $false
 $psh_si.StartInfo.RedirectStandardOutput = $true
 $global:psh_WatcherStarted = $false

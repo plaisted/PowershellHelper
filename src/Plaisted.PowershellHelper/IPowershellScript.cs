@@ -5,7 +5,6 @@ namespace Plaisted.PowershellHelper
     internal interface IPowershellScript
     {
         bool StopOnErrors { get; set; }
-
         void AddCommand(string command);
         void AddCommands(IEnumerable<string> commands);
         string CreateTempFile();

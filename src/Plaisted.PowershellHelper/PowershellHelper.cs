@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Plaisted.ProcessMonitor;
 
 namespace Plaisted.PowershellHelper
 {
@@ -172,20 +173,10 @@ namespace Plaisted.PowershellHelper
 
                 
                 PowershellProcess process = null;
-                if (processCleanup == CleanupType.RecursiveAdmin)
-                {
-                    //use admin based cleanup if requested
-                    var wrapper = TempScript.GetTempWrapperScript();
-                    disposables.Add(wrapper);
-                    var watcher = TempScript.GetTempWatcherScript();
-                    disposables.Add(watcher);
-                    var main = script.CreateTempFile();
-                    process = new PowershellProcess(wrapper.Path).AddArgs($"-watcherScriptPath \"{watcher.Path}\" -userScriptPath \"{main}\"").WithLogging(_logger);
-                } else
-                {
-                    //standard run
-                    process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
-                }
+                process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
+                ProcessMonitor.Monitor monitor=null;
+ 
+                
 
                 if (!string.IsNullOrEmpty(workingDirectory))
                 {
@@ -193,8 +184,24 @@ namespace Plaisted.PowershellHelper
                 }
                 _logger.LogInformation("[{EventName}]", "StartMainScript");
                 
-                var exitReason = await process.RunAsync(cancellationToken, millisecondsTimeout); ;
-                
+
+
+                if (processCleanup == CleanupType.RecursiveAdmin)
+                {
+                    //use admin based cleanup if requested
+                    monitor = new ProcessMonitor.Monitor(_logger).Start();
+                    disposables.Add(monitor);
+                }
+
+                var runTask = process.RunAsync(cancellationToken, millisecondsTimeout);
+
+                if (processCleanup == CleanupType.RecursiveAdmin)
+                {
+                    //use admin based cleanup if requested
+                    monitor.WatchProcess(process.ProcessId);
+                }
+
+                var exitReason = await runTask;
                 ExitCode = process.ExitCode;
                 
                 _logger.LogInformation("[{EventName}] {ExitCode}", "FinishedMainScript", ExitCode);
@@ -218,7 +225,6 @@ namespace Plaisted.PowershellHelper
                     }
 
                 }
-
                 //read output files
                 Output = ReadOutputs(outputTempFiles, _logger);
 

@@ -32,10 +32,13 @@ namespace ConsoleTest
             //helper.AddCommand("notepad.exe");
             //var exitCode = await helper.Run(cancellationToken);
 
-            var helper = new PowershellHelper(loggerFactory).WithProcessCleanup(CleanupType.None);
+            var helper = new PowershellHelper(loggerFactory).WithProcessCleanup(CleanupType.RecursiveAdmin);
             //helper.AddInputObject("testObject", new TestClass { TestProperty = "testValue" });
             //helper.AddCommand("$testObject.TestProperty = 'newTestValue'");
-            helper.AddCommand("Write-Output hello");
+            helper.AddCommand("notepad.exe");
+            helper.AddCommand("notepad.exe");
+            helper.AddCommand("notepad.exe");
+            //helper.AddCommand("cmd.exe '/c exit 1'");
             //helper.AddOutputObject("testObject");
             var exitCode = await helper.Run(cancellationToken);
 

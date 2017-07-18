@@ -56,7 +56,6 @@ namespace Plaisted.PowershellHelper
             return this;
         }
 
-
         public async Task<PowershellStatus> RunAsync(CancellationToken cancellationToken)
         {
             return await RunAsync(cancellationToken, -1);
