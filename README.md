@@ -64,6 +64,3 @@ Console.WriteLine("New value is: " + scriptOutput.TestProperty);
 \\\Output -> New value is: newTestValue
 ```
 The objects are serialized/deserialized into JSON so methods will not be transfered between the environments.
-
-# Perfomance
-If performance is of concern, this library is likely not a good choice. Spawning watcher processes and monitoring created processes adds considerable overhead to running the scripts. Increase in total execution time for powershell scripts of 1-2 seconds is common.
