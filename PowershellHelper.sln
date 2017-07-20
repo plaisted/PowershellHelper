@@ -3,19 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.12
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plaisted.PowershellHelper", "src\Plaisted.PowershellHelper\Plaisted.PowershellHelper.csproj", "{CEDCC77D-E04F-475C-B7FF-B97EEB21C49D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PowershellHelper", "src\PowershellHelper\PowershellHelper.csproj", "{CEDCC77D-E04F-475C-B7FF-B97EEB21C49D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{A6A36776-E88C-4577-B2D7-1B4B0AA45FF5}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{1BA54848-C536-4184-BB94-D2FCE1CA7DB4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plaisted.PowershellHelper.Tests", "test\Plaisted.PowershellHelper.Tests\Plaisted.PowershellHelper.Tests.csproj", "{DA8BAC47-8189-4159-A872-25105EEBCB15}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PowershellHelper.Tests", "test\PowershellHelper.Tests\PowershellHelper.Tests.csproj", "{DA8BAC47-8189-4159-A872-25105EEBCB15}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plaisted.PowershellHelper.IntegrationTests", "test\Plaisted.PowershellHelper.IntegrationTests\Plaisted.PowershellHelper.IntegrationTests.csproj", "{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PowershellHelper.IntegrationTests", "test\PowershellHelper.IntegrationTests\PowershellHelper.IntegrationTests.csproj", "{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleTest", "src\ConsoleTest\ConsoleTest.csproj", "{052CD33D-B750-4880-8411-257744FF5D54}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Plaisted.ProcessMonitor", "..\Plaisted.ProcessMonitor\src\Plaisted.ProcessMonitor\Plaisted.ProcessMonitor.csproj", "{4CA5DBB7-86FE-493F-9BD7-249A7E213A4B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PowershellHelper.FunctionalTests", "test\PowershellHelper.FunctionalTests\PowershellHelper.FunctionalTests.csproj", "{4BF0652D-631C-4E8C-AD5B-02A7B1EA1875}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,10 +39,10 @@ Global
 		{052CD33D-B750-4880-8411-257744FF5D54}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{052CD33D-B750-4880-8411-257744FF5D54}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{052CD33D-B750-4880-8411-257744FF5D54}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4CA5DBB7-86FE-493F-9BD7-249A7E213A4B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4CA5DBB7-86FE-493F-9BD7-249A7E213A4B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4CA5DBB7-86FE-493F-9BD7-249A7E213A4B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4CA5DBB7-86FE-493F-9BD7-249A7E213A4B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BF0652D-631C-4E8C-AD5B-02A7B1EA1875}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BF0652D-631C-4E8C-AD5B-02A7B1EA1875}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BF0652D-631C-4E8C-AD5B-02A7B1EA1875}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BF0652D-631C-4E8C-AD5B-02A7B1EA1875}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,6 +52,7 @@ Global
 		{DA8BAC47-8189-4159-A872-25105EEBCB15} = {1BA54848-C536-4184-BB94-D2FCE1CA7DB4}
 		{4A8F2693-5595-4FD2-A3F8-251D4FE7FE20} = {1BA54848-C536-4184-BB94-D2FCE1CA7DB4}
 		{052CD33D-B750-4880-8411-257744FF5D54} = {A6A36776-E88C-4577-B2D7-1B4B0AA45FF5}
+		{4BF0652D-631C-4E8C-AD5B-02A7B1EA1875} = {1BA54848-C536-4184-BB94-D2FCE1CA7DB4}
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

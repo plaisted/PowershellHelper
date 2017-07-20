@@ -17,7 +17,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
             helper.AddOutputObject("testObject");
 
             
-            var exitcode = await helper.Run(new System.Threading.CancellationToken());
+            var exitcode = await helper.RunAsync(new System.Threading.CancellationToken());
             var returnedClass = helper.Output["testObject"].ToObject<TestClass>();
             Assert.Equal("myValue", returnedClass.TestProperty);
         }
@@ -31,7 +31,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
             helper.AddOutputObject("te``st! Ob`{je}ct");
 
 
-            var exitcode = await helper.Run(new System.Threading.CancellationToken());
+            var exitcode = await helper.RunAsync(new System.Threading.CancellationToken());
             var returnedClass = helper.Output["te``st! Ob`{je}ct"].ToObject<TestClass>();
             Assert.Equal("myValue", returnedClass.TestProperty);
         }
@@ -44,7 +44,7 @@ namespace Plaisted.PowershellHelper.IntegrationTests
             helper.AddOutputObject("notSet");
 
 
-            var exitcode = await helper.Run(new System.Threading.CancellationToken());
+            var exitcode = await helper.RunAsync(new System.Threading.CancellationToken());
             Assert.Equal(null, helper.Output["notSet"]);
         }
         public class TestClass

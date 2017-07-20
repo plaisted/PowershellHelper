@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Diagnostics;
+using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -34,6 +35,20 @@ namespace Plaisted.PowershellHelper
         public PowershellProcess WithWorkingDirectory(string path)
         {
             si.WorkingDirectory = path;
+            return this;
+        }
+
+        public PowershellProcess WithCredentials(string username, SecureString password)
+        {
+            si.UserName = username;
+            si.Password = password;
+            return this;
+        }
+        public PowershellProcess WithDomainCredentials(string domain, string username, SecureString password)
+        {
+            si.Domain = domain;
+            si.UserName = username;
+            si.Password = password;
             return this;
         }
         public PowershellProcess WithPowershellVersion(PowershellVersion psVersion)

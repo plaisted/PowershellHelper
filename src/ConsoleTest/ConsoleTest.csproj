@@ -8,10 +8,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="1.1.2" />
+    <PackageReference Include="ProcessMonitor" Version="0.1.3-alpha" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Plaisted.PowershellHelper\Plaisted.PowershellHelper.csproj" />
+    <ProjectReference Include="..\PowershellHelper\PowershellHelper.csproj" />
   </ItemGroup>
 
 </Project>

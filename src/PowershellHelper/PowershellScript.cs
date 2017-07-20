@@ -12,6 +12,7 @@ namespace Plaisted.PowershellHelper
         private List<string> commands = new List<string>();
         private List<string> outputs = new List<string>();
         private string tempFile;
+        private string tempPath = Path.GetTempPath();
 
         /// <summary>
         /// Sets if the powershell script should stop on errors or continue
@@ -25,6 +26,10 @@ namespace Plaisted.PowershellHelper
         public void AddCommand(string command)
         {
             this.commands.Add(command);
+        }
+        public void SetTempPath(string path)
+        {
+            tempPath = path;
         }
         public void SetOutObject(string objectName, string tempJsonFile)
         {
@@ -62,7 +67,7 @@ namespace Plaisted.PowershellHelper
             //add output vars
             contents += string.Join(Environment.NewLine, outputs);
             if (StopOnErrors) { contents += LegacyExitCodeHelper(); }
-            tempFile = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".ps1");
+            tempFile = Path.Combine(tempPath, Guid.NewGuid().ToString() + ".ps1");
             File.WriteAllText(tempFile, contents);
             return tempFile;
         }

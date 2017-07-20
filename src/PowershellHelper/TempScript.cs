@@ -48,7 +48,7 @@ namespace Plaisted.PowershellHelper
             }
         }
 
-        public static TempScript GetNonAdminCleaupScript()
+        public static TempScript GetNonAdminCleaupScript(string tempDirectory)
         {
             var assembly = typeof(PowershellScript).GetTypeInfo().Assembly;
             using (var stream = assembly.GetManifestResourceStream("Plaisted.PowershellHelper.Scripts.ProcessCleanup-NoAdmin.ps1"))
@@ -56,7 +56,7 @@ namespace Plaisted.PowershellHelper
                 using (var reader = new StreamReader(stream))
                 {
                     var contents = reader.ReadToEnd();
-                    var tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid().ToString() + ".ps1");
+                    var tempFile = System.IO.Path.Combine(tempDirectory, Guid.NewGuid().ToString() + ".ps1");
                     File.WriteAllText(tempFile, contents);
                     return new TempScript(tempFile);
                 }

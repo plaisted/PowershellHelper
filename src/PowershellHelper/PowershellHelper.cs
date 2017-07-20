@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Plaisted.ProcessMonitor;
+using System.Security;
 
 namespace Plaisted.PowershellHelper
 {
@@ -20,6 +21,10 @@ namespace Plaisted.PowershellHelper
         private List<string> outputObjects = new List<string>();
         private CleanupType processCleanup = CleanupType.RecursiveAdmin;
         private string workingDirectory;
+        private Credentials credentials;
+        private string sharedTempFolder;
+        private ProcessMonitor.Monitor monitor;
+
         /// <summary>
         /// Output from the Poweshell script. Objects to be returned set using <see cref="AddOutputObject(string)"/>. If no value set in script the result will be null in dictionary.
         /// </summary>
@@ -58,6 +63,18 @@ namespace Plaisted.PowershellHelper
             return this;
         }
         /// <summary>
+        /// Sets the domain user to run the powershell script under.
+        /// </summary>
+        /// <param name="domain"></param>
+        /// <param name="username"></param>
+        /// <param name="password"></param>
+        /// <returns></returns>
+        public PowershellHelper WithDomainCredentials(string domain, string username, SecureString password)
+        {
+            credentials = new Credentials { Domain = domain, Password = password, UserName = username };
+            return this;
+        }
+        /// <summary>
         /// Adds commands to the Powershell script.
         /// </summary>
         /// <param name="commands">Commands to be executed sequentially in Powershell.</param>
@@ -85,6 +102,11 @@ namespace Plaisted.PowershellHelper
         public PowershellHelper WithProcessCleanup(CleanupType value)
         {
             processCleanup = value;
+            return this;
+        }
+        public PowershellHelper WithSharedTempFolder(string path)
+        {
+            sharedTempFolder = path;
             return this;
         }
         /// <summary>
@@ -143,9 +165,9 @@ namespace Plaisted.PowershellHelper
         /// </summary>
         /// <param name="cancellationToken"></param>
         /// <returns>Task of the dictionary containing JObjects of output objects.</returns>
-        public async Task<PowershellStatus> Run(CancellationToken cancellationToken)
+        public async Task<PowershellStatus> RunAsync(CancellationToken cancellationToken)
         {
-            return await Run(cancellationToken, -1);
+            return await RunAsync(cancellationToken, -1);
         }
         /// <summary>
         /// Runs the powershell script.
@@ -153,7 +175,7 @@ namespace Plaisted.PowershellHelper
         /// <param name="cancellationToken"></param>
         /// <param name="millisecondsTimeout">Timeout length to wait for task to finish.</param>
         /// <returns>Task of completion status.</returns>
-        public async Task<PowershellStatus> Run(CancellationToken cancellationToken, int millisecondsTimeout)
+        public async Task<PowershellStatus> RunAsync(CancellationToken cancellationToken, int millisecondsTimeout)
         {
             using (var disposables = new DisposableContainer())
             {
@@ -171,19 +193,23 @@ namespace Plaisted.PowershellHelper
                 //add outputs
                 var outputTempFiles = AddOutputsToScript(outputObjects, script);
 
-                
-                PowershellProcess process = null;
-                process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
-                ProcessMonitor.Monitor monitor=null;
- 
-                
+                if (sharedTempFolder != null)
+                {
+                    script.SetTempPath(sharedTempFolder);
+                }
 
+                PowershellProcess process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
+                //set working directory if neede
                 if (!string.IsNullOrEmpty(workingDirectory))
                 {
                     process.WithWorkingDirectory(workingDirectory);
                 }
+                if (credentials != null)
+                {
+                    process.WithDomainCredentials(credentials.Domain, credentials.UserName, credentials.Password);
+                }
+
                 _logger.LogInformation("[{EventName}]", "StartMainScript");
-                
 
 
                 if (processCleanup == CleanupType.RecursiveAdmin)
@@ -210,7 +236,7 @@ namespace Plaisted.PowershellHelper
                 //works for non-admin but doesn't get recursive processes
                 if (processCleanup == CleanupType.Recursive)
                 {
-                    using (var cleanupScript = TempScript.GetNonAdminCleaupScript())
+                    using (var cleanupScript = TempScript.GetNonAdminCleaupScript(sharedTempFolder == null ? Path.GetTempPath() : sharedTempFolder))
                     {
                         _logger.LogInformation("[{EventName}] {PId}", "StartCleanupScript", process.ProcessId);
                         var pec = await new PowershellProcess(cleanupScript.Path).WithLogging(_logger).RunAsync(new CancellationToken());
@@ -231,6 +257,30 @@ namespace Plaisted.PowershellHelper
                 return exitReason;
             }
         }
+        /// <summary>
+        /// Task for when cleanup completion has occurred.
+        /// </summary>
+        /// <returns></returns>
+        public Task CleanupTask()
+        {
+            if (monitor == null)
+            {
+                return Task.CompletedTask;
+            }
+            return monitor.OnFinishTask();
+        }
+        /// <summary>
+        /// Wait sync on cleanup to finish.
+        /// </summary>
+        public void WaitOnCleanup()
+        {
+            if (monitor == null)
+            {
+                return;
+            }
+            monitor.WaitOnFinish();
+        }
+
 
         private static void AddInputsToScript(List<KeyValuePair<string, object>> inputObjects, IPowershellScript script, IDisposableContainer disposables)
         {
