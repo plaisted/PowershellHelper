@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,6 +13,8 @@ namespace Plaisted.PowershellHelper
         private ProcessStartInfo si;
         private string scriptPath;
         private Process process;
+        private PowershellVersion version = PowershellVersion.Default;
+        private bool noProfile;
         private ILogger logger = new OptionalLogger();
         public int ProcessId { get; internal set; }
         public int ExitCode { get { return process.ExitCode; } }
@@ -25,15 +28,21 @@ namespace Plaisted.PowershellHelper
             si.RedirectStandardError = true;
             si.CreateNoWindow = true;
             si.FileName = "powershell.exe";
-            si.Arguments = "-noprofile -executionpolicy bypass -file " + scriptPath;
+
+            si.WorkingDirectory = Path.GetDirectoryName(scriptPath);
 
             process = new Process();
             process.StartInfo = si;
             
-            
             process.OutputDataReceived += HandleOutputDataReceived;
             process.ErrorDataReceived += HandleErrorDataReceived;
             
+        }
+
+        public PowershellProcess WithNoProfile(bool value)
+        {
+            noProfile = value;
+            return this;
         }
         public PowershellProcess WithWorkingDirectory(string path)
         {
@@ -41,25 +50,22 @@ namespace Plaisted.PowershellHelper
             return this;
         }
 
-        public PowershellProcess WithCredentials(string username, SecureString password)
+        public PowershellProcess WithCredentials(RunCredentials credentials)
         {
-            si.UserName = username;
-            si.Password = password;
+            si.UserName = credentials.UserName;
+            si.Password = credentials.Password;
+            if (!string.IsNullOrEmpty(credentials.Domain))
+            {
+                si.Domain = credentials.Domain;
+            }
+            noProfile = credentials.NoProfile;
+            si.LoadUserProfile = !noProfile;
             return this;
         }
-        public PowershellProcess WithDomainCredentials(string domain, string username, SecureString password)
-        {
-            si.Domain = domain;
-            si.UserName = username;
-            si.Password = password;
-            return this;
-        }
+
         public PowershellProcess WithPowershellVersion(PowershellVersion psVersion)
         {
-            if (psVersion != PowershellVersion.Default)
-            {
-                si.Arguments = "-version " + ((int)psVersion).ToString()+ " -noprofile -executionpolicy bypass -file " + scriptPath;
-            }
+            version = psVersion;
             return this;
         }
 
@@ -100,7 +106,15 @@ namespace Plaisted.PowershellHelper
             var timeout = new TaskCompletionSource<object>();
             using (cancellationToken.Register(() => timeout.TrySetCanceled()))
             {
-
+                si.Arguments = "-executionpolicy bypass -file " + scriptPath;
+                if (version != PowershellVersion.Default)
+                {
+                    si.Arguments = "-version " + ((int)version).ToString() + " " + si.Arguments;
+                }
+                if (noProfile == true)
+                {
+                    si.Arguments = "-noprofile " + si.Arguments;
+                }
                 process.EnableRaisingEvents = true;
                 process.Exited += (s, e) => completion.SetResult(process.ExitCode);
                 process.Start();

@@ -15,7 +15,12 @@ namespace Plaisted.PowershellHelper
         public JsonObjectBridge(string name)
         {
             Name = name;
-            TemporaryFile = GetTempFileName();
+            TemporaryFile = GetTempFileName(Path.GetTempPath());
+        }
+        public JsonObjectBridge(string name, string tempPath)
+        {
+            Name = name;
+            TemporaryFile = GetTempFileName(tempPath);
         }
         public string TemporaryFile { get; private set; }
         /// <summary>
@@ -72,9 +77,9 @@ namespace Plaisted.PowershellHelper
         {
             File.Delete(TemporaryFile);
         }
-        private string GetTempFileName()
+        private string GetTempFileName(string tempPath)
         {
-            return Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".json");
+            return Path.Combine(tempPath, Guid.NewGuid().ToString() + ".json");
         }
     }
 }

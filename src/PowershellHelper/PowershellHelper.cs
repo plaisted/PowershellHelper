@@ -20,11 +20,8 @@ namespace Plaisted.PowershellHelper
         private List<KeyValuePair<string, string>> procEnvs = new List<KeyValuePair<string, string>>();
         private List<KeyValuePair<string, object>> inputObjects = new List<KeyValuePair<string, object>>();
         private List<string> outputObjects = new List<string>();
-        private CleanupType processCleanup = CleanupType.RecursiveAdmin;
-        private string workingDirectory;
-        private Credentials credentials;
-        private string sharedTempFolder;
         private ProcessMonitor.Monitor monitor;
+        private HelperOptions options = new HelperOptions();
 
         /// <summary>
         /// Output from the Poweshell script. Objects to be returned set using <see cref="AddOutputObject(string)"/>. If no value set in script the result will be null in dictionary.
@@ -53,26 +50,10 @@ namespace Plaisted.PowershellHelper
         {
             _logger = logger;
         }
-        /// <summary>
-        /// Sets the <see cref="path"/> that the powershell script is executed in.
-        /// </summary>
-        /// <param name="path"></param>
-        /// <returns></returns>
-        public PowershellHelper WithWorkingDirectory(string path)
+
+        public PowershellHelper WithOptions(Action<HelperOptions> options)
         {
-            workingDirectory = path;
-            return this;
-        }
-        /// <summary>
-        /// Sets the domain user to run the powershell script under.
-        /// </summary>
-        /// <param name="domain"></param>
-        /// <param name="username"></param>
-        /// <param name="password"></param>
-        /// <returns></returns>
-        public PowershellHelper WithDomainCredentials(string domain, string username, SecureString password)
-        {
-            credentials = new Credentials { Domain = domain, Password = password, UserName = username };
+            options.DynamicInvoke(this.options);
             return this;
         }
         /// <summary>
@@ -93,21 +74,6 @@ namespace Plaisted.PowershellHelper
         public PowershellHelper AddCommand(string command)
         {
             commands.Add(command);
-            return this;
-        }
-        /// <summary>
-        /// Determines if all processes spawned by the Powershell script should be terminated once the script has exited.
-        /// </summary>
-        /// <param name="value"></param>
-        /// <returns></returns>
-        public PowershellHelper WithProcessCleanup(CleanupType value)
-        {
-            processCleanup = value;
-            return this;
-        }
-        public PowershellHelper WithSharedTempFolder(string path)
-        {
-            sharedTempFolder = path;
             return this;
         }
 
@@ -193,41 +159,50 @@ namespace Plaisted.PowershellHelper
         {
             using (var disposables = new DisposableContainer())
             {
+                var tempPath = options.SharedTempPath;
+                if (string.IsNullOrEmpty(tempPath))
+                {
+                    tempPath = Path.GetTempPath();
+                }
+                
                 //main script
                 var script = new PowershellScript();
                 disposables.Add(script);
 
-
                 //add inputs
-                AddInputsToScript(inputObjects, script, disposables);
+                AddInputsToScript(inputObjects, tempPath, script, disposables);
 
                 //add commands
                 script.AddCommands(commands);
 
                 //add outputs
-                var outputTempFiles = AddOutputsToScript(outputObjects, script);
+                var outputTempFiles = AddOutputsToScript(outputObjects, script, tempPath);
 
-                if (sharedTempFolder != null)
+                if (!string.IsNullOrEmpty(options.SharedTempPath))
                 {
-                    script.SetTempPath(sharedTempFolder);
+                    script.SetTempPath(options.SharedTempPath);
                 }
 
                 PowershellProcess process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
                 process.AddEnvs(procEnvs);
                 //set working directory if needed
-                if (!string.IsNullOrEmpty(workingDirectory))
+                if (!string.IsNullOrEmpty(options.WorkingPath))
                 {
-                    process.WithWorkingDirectory(workingDirectory);
+                    process.WithWorkingDirectory(options.WorkingPath);
+                } else
+                {
+                    process.WithWorkingDirectory(Environment.CurrentDirectory);
                 }
-                if (credentials != null)
+
+                if (options.Credentials != null)
                 {
-                    process.WithDomainCredentials(credentials.Domain, credentials.UserName, credentials.Password);
+                    process.WithCredentials(options.Credentials);
                 }
 
                 _logger.LogInformation("[{EventName}]", "StartMainScript");
 
 
-                if (processCleanup == CleanupType.RecursiveAdmin)
+                if (options.CleanupMethod == CleanupType.RecursiveAdmin)
                 {
                     //use admin based cleanup if requested
                     monitor = new ProcessMonitor.Monitor(_logger).Start();
@@ -236,7 +211,7 @@ namespace Plaisted.PowershellHelper
 
                 var runTask = process.RunAsync(cancellationToken, millisecondsTimeout);
 
-                if (processCleanup == CleanupType.RecursiveAdmin)
+                if (options.CleanupMethod == CleanupType.RecursiveAdmin)
                 {
                     //use admin based cleanup if requested
                     monitor.WatchProcess(process.ProcessId);
@@ -249,9 +224,10 @@ namespace Plaisted.PowershellHelper
 
                 //kill spawned processes
                 //works for non-admin but doesn't get recursive processes
-                if (processCleanup == CleanupType.Recursive)
+                if (options.CleanupMethod == CleanupType.Recursive)
                 {
-                    using (var cleanupScript = TempScript.GetNonAdminCleaupScript(sharedTempFolder == null ? Path.GetTempPath() : sharedTempFolder))
+                    using (var cleanupScript = TempScript.GetNonAdminCleaupScript(options.SharedTempPath == null ?
+                        Path.GetTempPath() : options.SharedTempPath))
                     {
                         _logger.LogInformation("[{EventName}] {PId}", "StartCleanupScript", process.ProcessId);
                         var pec = await new PowershellProcess(cleanupScript.Path).WithLogging(_logger).RunAsync(new CancellationToken());
@@ -297,22 +273,22 @@ namespace Plaisted.PowershellHelper
         }
 
 
-        private static void AddInputsToScript(List<KeyValuePair<string, object>> inputObjects, IPowershellScript script, IDisposableContainer disposables)
+        private static void AddInputsToScript(List<KeyValuePair<string, object>> inputObjects, string tempPath, IPowershellScript script, IDisposableContainer disposables)
         {
             foreach (var inputObject in inputObjects)
             {
-                var jsonObject = new JsonObjectBridge(inputObject.Key);
+                var jsonObject = new JsonObjectBridge(inputObject.Key, tempPath);
                 disposables.Add(jsonObject);
                 jsonObject.Object = inputObject.Value;
                 script.SetObject(jsonObject);
             }
         }
-        private static List<IJsonObjectBridge> AddOutputsToScript(List<string> outputObjects, IPowershellScript script)
+        private static List<IJsonObjectBridge> AddOutputsToScript(List<string> outputObjects, IPowershellScript script, string tempPath)
         {
             var outputTempFiles = new List<IJsonObjectBridge>();
             foreach (var output in outputObjects)
             {
-                var jsonObject = new JsonObjectBridge(output);
+                var jsonObject = new JsonObjectBridge(output, tempPath);
                 script.SetOutObject(jsonObject);
                 outputTempFiles.Add(jsonObject);
             }

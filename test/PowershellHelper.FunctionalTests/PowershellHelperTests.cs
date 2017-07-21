@@ -15,7 +15,7 @@ namespace Plaisted.PowershellHelper.FunctionalTests
         [Fact]
         public void It_Aborts_On_Cancellation_Request()
         {
-            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            var helper = new PowershellHelper().WithOptions(o => { o.CleanupMethod = CleanupType.RecursiveAdmin; });
             helper.AddCommand("Start-Sleep -s 60");
             var source = new CancellationTokenSource();
             using (var timeout = new Timeout(5000))
@@ -30,7 +30,7 @@ namespace Plaisted.PowershellHelper.FunctionalTests
         [Fact]
         public void It_Aborts_On_Timeout()
         {
-            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            var helper = new PowershellHelper().WithOptions(o => { o.CleanupMethod = CleanupType.RecursiveAdmin; });
             helper.AddCommand("Start-Sleep -s 60");
             var source = new CancellationTokenSource();
             using (var timeout = new Timeout(5000))
@@ -44,7 +44,7 @@ namespace Plaisted.PowershellHelper.FunctionalTests
         [Fact]
         public void It_Cleans_Up_Children_Admin()
         {
-            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            var helper = new PowershellHelper().WithOptions(o => { o.CleanupMethod = CleanupType.RecursiveAdmin; });
             helper.AddCommand("notepad.exe");
             var source = new CancellationTokenSource();
             using (var timeout = new Timeout(5000))
@@ -61,7 +61,7 @@ namespace Plaisted.PowershellHelper.FunctionalTests
         [Fact]
         public void It_Cleans_Up_GrandChildren_Admin()
         {
-            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            var helper = new PowershellHelper().WithOptions(o => { o.CleanupMethod = CleanupType.RecursiveAdmin; });
             helper.AddCommand("cmd.exe \"/c start notepad.exe\"");
             var source = new CancellationTokenSource();
             using (var timeout = new Timeout(5000))
@@ -78,7 +78,7 @@ namespace Plaisted.PowershellHelper.FunctionalTests
         [Fact]
         public void It_Sets_Value_In_Script()
         {
-            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            var helper = new PowershellHelper().WithOptions(o => { o.CleanupMethod = CleanupType.RecursiveAdmin; o.SharedTempPath = "c:\\temp"; });
             helper.AddInputObject("testObject", new { TestProperty = "testValue" });
             helper.AddCommand("if ($testObject.TestProperty -ne 'testValue') { exit 1 }");
             var source = new CancellationTokenSource();
@@ -93,7 +93,7 @@ namespace Plaisted.PowershellHelper.FunctionalTests
         [Fact]
         public void It_Gets_Value_From_Script()
         {
-            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            var helper = new PowershellHelper().WithOptions(o => { o.CleanupMethod = CleanupType.RecursiveAdmin; });
             helper.AddOutputObject("testObject");
             helper.AddCommand("$testObject = @{}");
             helper.AddCommand("$testObject.TestProperty = 'testValue'");
@@ -111,7 +111,7 @@ namespace Plaisted.PowershellHelper.FunctionalTests
         [Fact]
         public void It_Sets_Env()
         {
-            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            var helper = new PowershellHelper().WithOptions(o => { o.CleanupMethod = CleanupType.RecursiveAdmin; });
             helper.AddEnv("myTest", "value");
             helper.AddCommand("if ($env:myTest -ne 'value') { exit 1 }");
             var source = new CancellationTokenSource();
@@ -127,7 +127,7 @@ namespace Plaisted.PowershellHelper.FunctionalTests
         [Fact]
         public void It_Sets_Envs()
         {
-            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            var helper = new PowershellHelper().WithOptions(o => { o.CleanupMethod = CleanupType.RecursiveAdmin; });
             var envs = new List<KeyValuePair<string, string>>();
             envs.Add(new KeyValuePair<string, string>("env1", "value1"));
             envs.Add(new KeyValuePair<string, string>("env2", "value2"));
