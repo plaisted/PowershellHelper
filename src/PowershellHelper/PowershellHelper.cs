@@ -17,6 +17,7 @@ namespace Plaisted.PowershellHelper
     {
         private ILogger _logger = new OptionalLogger();
         private List<string> commands = new List<string>();
+        private List<KeyValuePair<string, string>> procEnvs = new List<KeyValuePair<string, string>>();
         private List<KeyValuePair<string, object>> inputObjects = new List<KeyValuePair<string, object>>();
         private List<string> outputObjects = new List<string>();
         private CleanupType processCleanup = CleanupType.RecursiveAdmin;
@@ -109,6 +110,19 @@ namespace Plaisted.PowershellHelper
             sharedTempFolder = path;
             return this;
         }
+
+        public PowershellHelper AddEnv(string name, string value)
+        {
+            procEnvs.Add(new KeyValuePair<string, string>(name, value));
+            return this;
+        }
+
+        public PowershellHelper AddEnvs(IEnumerable<KeyValuePair<string,string>> envs)
+        {
+            procEnvs.AddRange(envs);
+            return this;
+        }
+
         /// <summary>
         /// Adds objects to the Powershell environment prior to executing added commands.
         /// </summary>
@@ -199,7 +213,8 @@ namespace Plaisted.PowershellHelper
                 }
 
                 PowershellProcess process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
-                //set working directory if neede
+                process.AddEnvs(procEnvs);
+                //set working directory if needed
                 if (!string.IsNullOrEmpty(workingDirectory))
                 {
                     process.WithWorkingDirectory(workingDirectory);

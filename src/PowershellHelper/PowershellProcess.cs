@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Security;
 using System.Threading;
@@ -28,6 +29,8 @@ namespace Plaisted.PowershellHelper
 
             process = new Process();
             process.StartInfo = si;
+            
+            
             process.OutputDataReceived += HandleOutputDataReceived;
             process.ErrorDataReceived += HandleErrorDataReceived;
             
@@ -68,6 +71,21 @@ namespace Plaisted.PowershellHelper
         public PowershellProcess AddArgs(string args)
         {
             si.Arguments += " " + args;
+            return this;
+        }
+
+        public PowershellProcess AddEnv(string name, string value)
+        {
+            si.Environment.Add(name, value);
+            return this;
+        }
+
+        public PowershellProcess AddEnvs(IEnumerable<KeyValuePair<string,string>> envs)
+        {
+            foreach (var env in envs)
+            {
+                si.Environment.Add(env.Key, env.Value);
+            }
             return this;
         }
 

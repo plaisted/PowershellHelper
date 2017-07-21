@@ -107,5 +107,41 @@ namespace Plaisted.PowershellHelper.FunctionalTests
             dynamic output = helper.Output["testObject"];
             Assert.True(output.TestProperty == "testValue");
         }
+
+        [Fact]
+        public void It_Sets_Env()
+        {
+            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            helper.AddEnv("myTest", "value");
+            helper.AddCommand("if ($env:myTest -ne 'value') { exit 1 }");
+            var source = new CancellationTokenSource();
+            using (var timeout = new Timeout(5000))
+            {
+                var task = Task.Run(() => helper.RunAsync(source.Token));
+                task.Wait();
+                Assert.True(task.Result == PowershellStatus.Exited);
+            }
+            Assert.True(helper.ExitCode == 0);
+        }
+
+        [Fact]
+        public void It_Sets_Envs()
+        {
+            var helper = new PowershellHelper().WithProcessCleanup(CleanupType.RecursiveAdmin);
+            var envs = new List<KeyValuePair<string, string>>();
+            envs.Add(new KeyValuePair<string, string>("env1", "value1"));
+            envs.Add(new KeyValuePair<string, string>("env2", "value2"));
+            helper.AddEnvs(envs);
+            helper.AddCommand("if ($env:env1 -ne 'value1') { exit 1 }");
+            helper.AddCommand("if ($env:env2 -ne 'value2') { exit 1 }");
+            var source = new CancellationTokenSource();
+            using (var timeout = new Timeout(5000))
+            {
+                var task = Task.Run(() => helper.RunAsync(source.Token));
+                task.Wait();
+                Assert.True(task.Result == PowershellStatus.Exited);
+            }
+            Assert.True(helper.ExitCode == 0);
+        }
     }
 }
