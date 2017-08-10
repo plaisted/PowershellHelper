@@ -26,5 +26,10 @@ namespace Plaisted.PowershellHelper
         /// users temporary folder.
         /// </summary>
         public string SharedTempPath { get; set; }
+        /// <summary>
+        /// Determines if the helper will wait for cleanup tasks to finish before disposing them.
+        /// Default true,  Only applies for RecursiveAdmin.
+        /// </summary>
+        public bool WaitForCleanup { get; set; } = true;
     }
 }

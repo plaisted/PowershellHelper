@@ -78,7 +78,7 @@ namespace Plaisted.PowershellHelper
 
         private static string LegacyExitCodeHelper()
         {
-            return "trap { Write-Error $_;  exit 1; }";
+            return "trap { [System.Console]::Error.WriteLine($_);  exit 1; }";
         }
 
         private static string ExitCodeVerify(string commandNumber)

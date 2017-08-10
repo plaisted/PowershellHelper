@@ -13,7 +13,7 @@ using System.Security;
 
 namespace Plaisted.PowershellHelper
 {
-    public class PowershellHelper
+    public class PowershellHelper : IDisposable
     {
         private ILogger _logger = new OptionalLogger();
         private List<string> commands = new List<string>();
@@ -22,6 +22,7 @@ namespace Plaisted.PowershellHelper
         private List<string> outputObjects = new List<string>();
         private ProcessMonitor.Monitor monitor;
         private HelperOptions options = new HelperOptions();
+        private DisposableContainer disposables = new DisposableContainer();
 
         /// <summary>
         /// Output from the Poweshell script. Objects to be returned set using <see cref="AddOutputObject(string)"/>. If no value set in script the result will be null in dictionary.
@@ -157,99 +158,97 @@ namespace Plaisted.PowershellHelper
         /// <returns>Task of completion status.</returns>
         public async Task<PowershellStatus> RunAsync(CancellationToken cancellationToken, int millisecondsTimeout)
         {
-            using (var disposables = new DisposableContainer())
+
+            var tempPath = options.SharedTempPath;
+            if (string.IsNullOrEmpty(tempPath))
             {
-                var tempPath = options.SharedTempPath;
-                if (string.IsNullOrEmpty(tempPath))
-                {
-                    tempPath = Path.GetTempPath();
-                }
-                
-                //main script
-                var script = new PowershellScript();
-                disposables.Add(script);
-
-                //add inputs
-                AddInputsToScript(inputObjects, tempPath, script, disposables);
-
-                //add commands
-                script.AddCommands(commands);
-
-                //add outputs
-                var outputTempFiles = AddOutputsToScript(outputObjects, script, tempPath);
-
-                if (!string.IsNullOrEmpty(options.SharedTempPath))
-                {
-                    script.SetTempPath(options.SharedTempPath);
-                }
-
-                PowershellProcess process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
-                process.AddEnvs(procEnvs);
-                //set working directory if needed
-                if (!string.IsNullOrEmpty(options.WorkingPath))
-                {
-                    process.WithWorkingDirectory(options.WorkingPath);
-                } else
-                {
-                    process.WithWorkingDirectory(Environment.CurrentDirectory);
-                }
-
-                if (options.Credentials != null)
-                {
-                    process.WithCredentials(options.Credentials);
-                }
-
-                _logger.LogInformation("[{EventName}]", "StartMainScript");
-
-
-                if (options.CleanupMethod == CleanupType.RecursiveAdmin)
-                {
-                    //use admin based cleanup if requested
-                    monitor = new ProcessMonitor.Monitor(_logger).Start();
-                    disposables.Add(monitor);
-                }
-
-                var runTask = process.RunAsync(cancellationToken, millisecondsTimeout);
-
-                if (options.CleanupMethod == CleanupType.RecursiveAdmin)
-                {
-                    //use admin based cleanup if requested
-                    monitor.WatchProcess(process.ProcessId);
-                }
-
-                var exitReason = await runTask;
-                ExitCode = process.ExitCode;
-                
-                _logger.LogInformation("[{EventName}] {ExitCode}", "FinishedMainScript", ExitCode);
-
-                //kill spawned processes
-                //works for non-admin but doesn't get recursive processes
-                if (options.CleanupMethod == CleanupType.Recursive)
-                {
-                    using (var cleanupScript = TempScript.GetNonAdminCleaupScript(options.SharedTempPath == null ?
-                        Path.GetTempPath() : options.SharedTempPath))
-                    {
-                        _logger.LogInformation("[{EventName}] {PId}", "StartCleanupScript", process.ProcessId);
-                        var pec = await new PowershellProcess(cleanupScript.Path).WithLogging(_logger).RunAsync(new CancellationToken());
-                        if (pec != 0)
-                        {
-                            _logger.LogError("[{EventName}] Process cleanup script ended with {ExitCode}.", "CleanupError", pec);
-                        }
-                        else
-                        {
-                            _logger.LogInformation("[{EventName}]", "FinishedCleanupScript");
-                        }
-                    }
-
-                }
-                //read output files
-                Output = ReadOutputs(outputTempFiles, _logger);
-
-                return exitReason;
+                tempPath = Path.GetTempPath();
             }
+                
+            //main script
+            var script = new PowershellScript();
+            disposables.Add(script);
+
+            //add inputs
+            AddInputsToScript(inputObjects, tempPath, script, disposables);
+
+            //add commands
+            script.AddCommands(commands);
+
+            //add outputs
+            var outputTempFiles = AddOutputsToScript(outputObjects, script, tempPath);
+
+            if (!string.IsNullOrEmpty(options.SharedTempPath))
+            {
+                script.SetTempPath(options.SharedTempPath);
+            }
+
+            PowershellProcess process = new PowershellProcess(script.CreateTempFile()).WithLogging(_logger);
+            process.AddEnvs(procEnvs);
+            //set working directory if needed
+            if (!string.IsNullOrEmpty(options.WorkingPath))
+            {
+                process.WithWorkingDirectory(options.WorkingPath);
+            } else
+            {
+                process.WithWorkingDirectory(Environment.CurrentDirectory);
+            }
+
+            if (options.Credentials != null)
+            {
+                process.WithCredentials(options.Credentials);
+            }
+
+            _logger.LogInformation("[{EventName}]", "StartMainScript");
+
+
+            if (options.CleanupMethod == CleanupType.RecursiveAdmin)
+            {
+                //use admin based cleanup if requested
+                monitor = new ProcessMonitor.Monitor(_logger).Start();
+                disposables.Add(monitor);
+            }
+
+            var runTask = process.RunAsync(cancellationToken, millisecondsTimeout);
+
+            if (options.CleanupMethod == CleanupType.RecursiveAdmin)
+            {
+                //use admin based cleanup if requested
+                monitor.WatchProcess(process.ProcessId);
+            }
+
+            var exitReason = await runTask;
+            ExitCode = process.ExitCode;
+                
+            _logger.LogInformation("[{EventName}] {ExitCode}", "FinishedMainScript", ExitCode);
+
+            //works for non-admin but doesn't get recursive processes
+            if (options.CleanupMethod == CleanupType.Recursive)
+            {
+                using (var cleanupScript = TempScript.GetNonAdminCleaupScript(options.SharedTempPath == null ?
+                    Path.GetTempPath() : options.SharedTempPath))
+                {
+                    _logger.LogInformation("[{EventName}] {PId}", "StartCleanupScript", process.ProcessId);
+                    var pec = await new PowershellProcess(cleanupScript.Path).WithLogging(_logger).RunAsync(new CancellationToken());
+                    if (pec != 0)
+                    {
+                        _logger.LogError("[{EventName}] Process cleanup script ended with {ExitCode}.", "CleanupError", pec);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("[{EventName}]", "FinishedCleanupScript");
+                    }
+                }
+
+            }
+            //read output files
+            Output = ReadOutputs(outputTempFiles, _logger);
+
+            return exitReason;
+
         }
         /// <summary>
-        /// Task for when cleanup completion has occurred.
+        /// Task for when cleanup completion has occurred. Only applies for RecursiveAdmin.
         /// </summary>
         /// <returns></returns>
         public Task CleanupTask()
@@ -261,7 +260,7 @@ namespace Plaisted.PowershellHelper
             return monitor.OnFinishTask();
         }
         /// <summary>
-        /// Wait sync on cleanup to finish.
+        /// Wait sync on cleanup to finish.  Only applies for RecursiveAdmin.
         /// </summary>
         public void WaitOnCleanup()
         {
@@ -272,6 +271,14 @@ namespace Plaisted.PowershellHelper
             monitor.WaitOnFinish();
         }
 
+        public void Dispose()
+        {
+            if (options.WaitForCleanup)
+            {
+                WaitOnCleanup();
+            }
+            disposables.Dispose();
+        }
 
         private static void AddInputsToScript(List<KeyValuePair<string, object>> inputObjects, string tempPath, IPowershellScript script, IDisposableContainer disposables)
         {
